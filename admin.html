@@ -74,7 +74,7 @@
         <div class="lg:col-span-3 space-y-6">
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 id="current-unit-title" class="text-xl font-bold text-indigo-600">اختر الوحدة لعرض وإدارة دروسها</h2>
+                    <h2 id="current-unit-title" class="text-xl font-bold text-indigo-600">إدارة الوحدات والدروس</h2>
                 </div>
                 <div id="admin-units-container" class="space-y-6">
                     <!-- Units and Lessons List -->
@@ -101,7 +101,7 @@
                         <input type="text" id="new-lesson-title" placeholder="مثال: الدرس الثالث: حل المعادلات الخطية" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-1">محتوى الدرس (يدعم HTML والمعادلات الرياضية بصيغة MathJax مثل $\\sqrt{25}$)</label>
+                        <label class="block text-sm font-medium mb-1">محتوى الدرس (يدعم HTML والمعادلات الرياضية بصيغة MathJax مثل $\sqrt{25}$)</label>
                         <textarea id="new-lesson-content" rows="6" placeholder="اكتب محتوى الشرح هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
                     </div>
                     <button onclick="saveNewLesson()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -125,7 +125,58 @@
 
     <!-- Admin Script -->
     <script>
-        let appData = JSON.parse(localStorage.getItem('taha_math_platform_data')) || {};
+        const defaultData = {
+            grades: [
+                {
+                    id: 'g7',
+                    name: 'الصف السابع',
+                    books: [
+                        {
+                            id: 'b7_algebra',
+                            name: 'كتاب الجبر',
+                            units: [
+                                {
+                                    id: 'u7_1',
+                                    name: 'الوحدة الأولى: الأعداد الصحيحة والكسور',
+                                    lessons: [
+                                        {
+                                            id: 'l7_1_1',
+                                            title: 'الدرس الأول: العمليات على الأعداد الصحيحة',
+                                            content: `<h3>مفهوم الأعداد الصحيحة</h3><p>تعلمنا سابقاً أن مجموعة الأعداد الصحيحة تضم الأعداد الصحيحة الموجبة، الصفر، والأعداد الصحيحة السالبة.</p>`
+                                        }
+                                    ],
+                                    exercises: [],
+                                    exam: null
+                                }
+                            ]
+                        },
+                        { id: 'b7_geometry', name: 'كتاب الهندسة', units: [] }
+                    ]
+                },
+                {
+                    id: 'g8',
+                    name: 'الصف الثامن',
+                    books: [
+                        { id: 'b8_alg', name: 'كتاب الجبر', units: [] },
+                        { id: 'b8_geo', name: 'كتاب الهندسة', units: [] }
+                    ]
+                },
+                {
+                    id: 'g9',
+                    name: 'الصف التاسع',
+                    books: [
+                        { id: 'b9_alg', name: 'كتاب الجبر', units: [] },
+                        { id: 'b9_geo', name: 'كتاب الهندسة', units: [] }
+                    ]
+                }
+            ]
+        };
+
+        let appData = JSON.parse(localStorage.getItem('taha_math_platform_data'));
+        if (!appData || !appData.grades) {
+            appData = defaultData;
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+        }
 
         function initAdmin() {
             let gradeSelect = document.getElementById('admin-grade-select');
@@ -141,9 +192,11 @@
             let grade = appData.grades.find(g => g.id === gradeId);
             let bookSelect = document.getElementById('admin-book-select');
             bookSelect.innerHTML = '';
-            grade.books.forEach(b => {
-                bookSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
-            });
+            if (grade && grade.books) {
+                grade.books.forEach(b => {
+                    bookSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+                });
+            }
             renderAdminUnits();
         }
 
@@ -151,7 +204,9 @@
             let gradeId = document.getElementById('admin-grade-select').value;
             let bookId = document.getElementById('admin-book-select').value;
             let grade = appData.grades.find(g => g.id === gradeId);
+            if (!grade) return;
             let book = grade.books.find(b => b.id === bookId);
+            if (!book) return;
 
             let targetSelect = document.getElementById('target-unit-select');
             targetSelect.innerHTML = '';
@@ -160,7 +215,7 @@
             container.innerHTML = '';
 
             if (!book.units || book.units.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب حتى الآن.</p>`;
+                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب حتى الآن. استخدم زر "إضافة وحدة جديدة" بالأسفل.</p>`;
                 return;
             }
 
@@ -185,16 +240,16 @@
                         `;
                     });
                 } else {
-                    div.innerHTML += `<p class="text-xs text-slate-400">لا دروس مضافة بعد.</p>`;
+                    div.innerHTML += `<p class="text-xs text-slate-400">لا دروس مضافة بعد في هذه الوحدة.</p>`;
                 }
                 div.innerHTML += `</div>`;
                 container.appendChild(div);
             });
         }
 
-        // Add Unit Modal
         function openAddUnitModal() { document.getElementById('unit-modal').classList.remove('hidden'); }
         function closeAddUnitModal() { document.getElementById('unit-modal').classList.add('hidden'); }
+        
         function confirmAddUnit() {
             let name = document.getElementById('unit-name-input').value;
             if (!name) return alert('الرجاء إدخال اسم الوحدة');
@@ -217,7 +272,6 @@
             alert('تمت إضافة الوحدة بنجاح!');
         }
 
-        // Delete Unit / Lesson
         function deleteUnit(gradeId, bookId, unitId) {
             if (!confirm('هل أنت متأكد من حذف هذه الوحدة بكامل دروسها؟')) return;
             let book = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId);
@@ -234,14 +288,13 @@
             renderAdminUnits();
         }
 
-        // Save New Lesson
         function saveNewLesson() {
             let unitId = document.getElementById('target-unit-select').value;
             let title = document.getElementById('new-lesson-title').value;
             let content = document.getElementById('new-lesson-content').value;
 
             if (!unitId || !title || !content) {
-                alert('الرجاء التأكد من تعبئة جميع حقول الدرس واختيار الوحدة.');
+                alert('الرجاء التأكد من تعبئة حقول عنوان ومحتوى الدرس واختيار الوحدة المستهدفة.');
                 return;
             }
 
@@ -264,7 +317,6 @@
             alert('تم حفظ وإضافة الدرس بنجاح إلى المنصة!');
         }
 
-        // Handle Word .docx Upload
         function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -277,13 +329,12 @@
                         alert('تم استخراج محتوى ملف Word وتحويله بنجاح إلى محرر الدروس!');
                     })
                     .catch(function(err) {
-                        alert('حدث خطأ أثناء قراءة ملف Word: ' + err.message);
+                        alert('خطأ في قراءة ملف Word: ' + err.message);
                     });
             };
             reader.readAsArrayBuffer(file);
         }
 
-        // Export / Import JSON Backup
         function exportJSON() {
             let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
             let downloadAnchor = document.createElement('a');
@@ -303,7 +354,7 @@
                     appData = JSON.parse(event.target.result);
                     localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
                     initAdmin();
-                    alert('تم استعادة البيانات والنسخة الاحتياطية بنجاح!');
+                    alert('تم استعادة البيانات بنجاح!');
                 } catch(err) {
                     alert('ملف النسخة الاحتياطية غير صالح.');
                 }
