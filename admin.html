@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الإدارية - منصة الأستاذ طه للرياضيات</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { brand: { 500: '#6366f1', 600: '#4f46e5' } }
+                }
+            }
+        }
+    </script>
+    <!-- MathJax -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Mammoth.js for Word .docx Import -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-20 flex items-center px-8 justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">إ</div>
+            <div>
+                <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
+                <p class="text-xs text-slate-500">إدارة المناهج، الوحدات، الدروس، ورفع ملفات Word مباشرة</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-200 transition"><i class="fa-solid fa-globe ml-1"></i> استعراض المنصة</a>
+            <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-download ml-1"></i> تصدير Backup</button>
+            <label class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition">
+                <i class="fa-solid fa-upload ml-1"></i> استيراد Restore
+                <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Admin Body -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Sidebar Controls -->
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6 h-fit">
+            <h3 class="font-bold text-lg border-b pb-3 border-slate-100 dark:border-slate-700">شجرة المحتوى الإدارية</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">اختر الصف</label>
+                    <select id="admin-grade-select" onchange="renderAdminBooks()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">اختر الكتاب</label>
+                    <select id="admin-book-select" onchange="renderAdminUnits()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                <button onclick="openAddUnitModal()" class="w-full bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-medium py-2.5 rounded-xl text-sm hover:bg-indigo-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة وحدة جديدة</button>
+            </div>
+        </div>
+
+        <!-- Content Management Panel -->
+        <div class="lg:col-span-3 space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 id="current-unit-title" class="text-xl font-bold text-indigo-600">اختر الوحدة لعرض وإدارة دروسها</h2>
+                </div>
+                <div id="admin-units-container" class="space-y-6">
+                    <!-- Units and Lessons List -->
+                </div>
+            </div>
+
+            <!-- Advanced Word & Editor Panel -->
+            <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس المتقدم ورفع ملفات Word (.docx)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word مباشر للدرس</label>
+                        <p class="text-xs text-slate-500 mb-2">سيقوم النظام بتحويل المحتوى، العناوين، والصور تلقائياً إلى محرر النص.</p>
+                        <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">اختر الوحدة المستهدفة لإضافة الدرس</label>
+                        <select id="target-unit-select" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></select>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
+                        <input type="text" id="new-lesson-title" placeholder="مثال: الدرس الثالث: حل المعادلات الخطية" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">محتوى الدرس (يدعم HTML والمعادلات الرياضية بصيغة MathJax مثل $\\sqrt{25}$)</label>
+                        <textarea id="new-lesson-content" rows="6" placeholder="اكتب محتوى الشرح هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
+                    </div>
+                    <button onclick="saveNewLesson()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Add Unit -->
+    <div id="unit-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold">إضافة وحدة دراسية جديدة</h3>
+            <input type="text" id="unit-name-input" placeholder="اسم الوحدة (مثال: الوحدة الثانية: الهندسة التحليلية)" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeAddUnitModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm">إلغاء</button>
+                <button onclick="confirmAddUnit()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium">حفظ الوحدة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Script -->
+    <script>
+        let appData = JSON.parse(localStorage.getItem('taha_math_platform_data')) || {};
+
+        function initAdmin() {
+            let gradeSelect = document.getElementById('admin-grade-select');
+            gradeSelect.innerHTML = '';
+            appData.grades.forEach(g => {
+                gradeSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+            });
+            renderAdminBooks();
+        }
+
+        function renderAdminBooks() {
+            let gradeId = document.getElementById('admin-grade-select').value;
+            let grade = appData.grades.find(g => g.id === gradeId);
+            let bookSelect = document.getElementById('admin-book-select');
+            bookSelect.innerHTML = '';
+            grade.books.forEach(b => {
+                bookSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+            });
+            renderAdminUnits();
+        }
+
+        function renderAdminUnits() {
+            let gradeId = document.getElementById('admin-grade-select').value;
+            let bookId = document.getElementById('admin-book-select').value;
+            let grade = appData.grades.find(g => g.id === gradeId);
+            let book = grade.books.find(b => b.id === bookId);
+
+            let targetSelect = document.getElementById('target-unit-select');
+            targetSelect.innerHTML = '';
+
+            let container = document.getElementById('admin-units-container');
+            container.innerHTML = '';
+
+            if (!book.units || book.units.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب حتى الآن.</p>`;
+                return;
+            }
+
+            book.units.forEach(unit => {
+                targetSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
+                let div = document.createElement('div');
+                div.className = 'p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-4';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h4>
+                        <button onclick="deleteUnit('${gradeId}', '${bookId}', '${unit.id}')" class="text-rose-500 text-xs hover:underline"><i class="fa-solid fa-trash ml-1"></i> حذف الوحدة</button>
+                    </div>
+                    <div class="space-y-2 pl-4">
+                `;
+                if (unit.lessons && unit.lessons.length > 0) {
+                    unit.lessons.forEach(l => {
+                        div.innerHTML += `
+                            <div class="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl text-sm">
+                                <span><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
+                                <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    div.innerHTML += `<p class="text-xs text-slate-400">لا دروس مضافة بعد.</p>`;
+                }
+                div.innerHTML += `</div>`;
+                container.appendChild(div);
+            });
+        }
+
+        // Add Unit Modal
+        function openAddUnitModal() { document.getElementById('unit-modal').classList.remove('hidden'); }
+        function closeAddUnitModal() { document.getElementById('unit-modal').classList.add('hidden'); }
+        function confirmAddUnit() {
+            let name = document.getElementById('unit-name-input').value;
+            if (!name) return alert('الرجاء إدخال اسم الوحدة');
+            let gradeId = document.getElementById('admin-grade-select').value;
+            let bookId = document.getElementById('admin-book-select').value;
+            let grade = appData.grades.find(g => g.id === gradeId);
+            let book = grade.books.find(b => b.id === bookId);
+            if (!book.units) book.units = [];
+            book.units.push({
+                id: 'u_' + Date.now(),
+                name: name,
+                lessons: [],
+                exercises: [],
+                exam: null
+            });
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            closeAddUnitModal();
+            document.getElementById('unit-name-input').value = '';
+            renderAdminUnits();
+            alert('تمت إضافة الوحدة بنجاح!');
+        }
+
+        // Delete Unit / Lesson
+        function deleteUnit(gradeId, bookId, unitId) {
+            if (!confirm('هل أنت متأكد من حذف هذه الوحدة بكامل دروسها؟')) return;
+            let book = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId);
+            book.units = book.units.filter(u => u.id !== unitId);
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            renderAdminUnits();
+        }
+
+        function deleteLesson(gradeId, bookId, unitId, lessonId) {
+            if (!confirm('هل أنت متأكد من حذف هذا الدرس؟')) return;
+            let unit = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId).units.find(u => u.id === unitId);
+            unit.lessons = unit.lessons.filter(l => l.id !== lessonId);
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            renderAdminUnits();
+        }
+
+        // Save New Lesson
+        function saveNewLesson() {
+            let unitId = document.getElementById('target-unit-select').value;
+            let title = document.getElementById('new-lesson-title').value;
+            let content = document.getElementById('new-lesson-content').value;
+
+            if (!unitId || !title || !content) {
+                alert('الرجاء التأكد من تعبئة جميع حقول الدرس واختيار الوحدة.');
+                return;
+            }
+
+            let gradeId = document.getElementById('admin-grade-select').value;
+            let bookId = document.getElementById('admin-book-select').value;
+            let book = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId);
+            let unit = book.units.find(u => u.id === unitId);
+
+            if (!unit.lessons) unit.lessons = [];
+            unit.lessons.push({
+                id: 'l_' + Date.now(),
+                title: title,
+                content: content
+            });
+
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            document.getElementById('new-lesson-title').value = '';
+            document.getElementById('new-lesson-content').value = '';
+            renderAdminUnits();
+            alert('تم حفظ وإضافة الدرس بنجاح إلى المنصة!');
+        }
+
+        // Handle Word .docx Upload
+        function handleDocxUpload(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                mammoth.convertToHtml({ arrayBuffer: event.target.result })
+                    .then(function(result) {
+                        document.getElementById('new-lesson-content').value = result.value;
+                        document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
+                        alert('تم استخراج محتوى ملف Word وتحويله بنجاح إلى محرر الدروس!');
+                    })
+                    .catch(function(err) {
+                        alert('حدث خطأ أثناء قراءة ملف Word: ' + err.message);
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Export / Import JSON Backup
+        function exportJSON() {
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            let downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "taha_math_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importJSON(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    appData = JSON.parse(event.target.result);
+                    localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+                    initAdmin();
+                    alert('تم استعادة البيانات والنسخة الاحتياطية بنجاح!');
+                } catch(err) {
+                    alert('ملف النسخة الاحتياطية غير صالح.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        initAdmin();
+    </script>
+</body>
+</html>
