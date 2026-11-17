@@ -24,7 +24,7 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- Mammoth.js for Word .docx Import with Images support -->
+    <!-- Mammoth.js for Word .docx Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -36,7 +36,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">إ</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">إدارة المناهج، الوحدات، الدروس، ورفع ملفات Word مباشرة</p>
+                <p class="text-xs text-slate-500">إدارة المناهج، الوحدات، الدروس، والتمارين والاختبارات الخاصة بكل درس</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -73,7 +73,7 @@
         <!-- Content Management Panel -->
         <div class="lg:col-span-3 space-y-6">
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h2 class="text-xl font-bold text-indigo-600">إدارة الوحدات والدروس الحالية</h2>
+                <h2 class="text-xl font-bold text-indigo-600">إدارة الوحدات والدروس والتمارين</h2>
                 <div id="admin-units-container" class="space-y-6">
                     <!-- Units List -->
                 </div>
@@ -81,15 +81,14 @@
 
             <!-- Advanced Word & Editor Panel -->
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس المتقدم ورفع ملفات Word (.docx)</h3>
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
                         <label class="block text-sm font-semibold mb-1">رفع ملف Word مباشر للدرس</label>
-                        <p class="text-xs text-slate-500 mb-2">سيستخرج النصوص، الجداول، والصور تلقائياً.</p>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold mb-1">اختر الوحدة المستهدفة لإضافة الدرس</label>
+                        <label class="block text-sm font-semibold mb-1">اختر الوحدة لإضافة الدرس</label>
                         <select id="target-unit-select" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></select>
                     </div>
                 </div>
@@ -97,22 +96,19 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: بعض خواص التناسب" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="new-lesson-title" placeholder="مثال: الدرس الأول: خواص التناسب" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (يدعم HTML ومعادلات MathJax مثل $\frac{a}{b} = \frac{c}{d}$ و $\Rightarrow$)</label>
-                            <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة المعادلة فوري</button>
+                            <label class="block text-sm font-medium">محتوى الدرس (يدعم HTML ومعادلات MathJax مثل $\frac{a}{b}$)</label>
+                            <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
-                        <textarea id="new-lesson-content" rows="8" placeholder="اكتب المحتوى أو الكود هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
+                        <textarea id="new-lesson-content" rows="6" placeholder="اكتب الشرح هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
                     </div>
 
-                    <!-- Live MathJax Preview Box -->
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
-                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة لشكل الرياضيات في المنصة:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[60px] text-sm">
-                            اكتب معادلة بالأعلى واضغط معاينة...
-                        </div>
+                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
+                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm">اكتب محتوى بالأعلى...</div>
                     </div>
 
                     <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -130,6 +126,40 @@
             <div class="flex justify-end gap-3">
                 <button onclick="closeAddUnitModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm">إلغاء</button>
                 <button onclick="confirmAddUnit()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium">حفظ الوحدة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Exercise to Lesson -->
+    <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-emerald-600">إضافة تمرين تفاعلي للدرس</h3>
+            <input type="hidden" id="ex-grade-id">
+            <input type="hidden" id="ex-book-id">
+            <input type="hidden" id="ex-unit-id">
+            <input type="hidden" id="ex-lesson-id">
+            <div>
+                <label class="block text-sm font-medium mb-1">نص السؤال</label>
+                <input type="text" id="ex-question" placeholder="مثال: ما قيمة x في المعادلة x/2 = 1/4؟" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="ex-opt0" placeholder="الخيار الأول (أ)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                <input type="text" id="ex-opt1" placeholder="الخيار الثاني (ب)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                <input type="text" id="ex-opt2" placeholder="الخيار الثالث (ج)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                <input type="text" id="ex-opt3" placeholder="الخيار الرابع (د)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">رقم الإجابة الصحيحة (0 للأول، 1 للثاني، إلخ)</label>
+                <select id="ex-correct" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                    <option value="0">الخيار الأول</option>
+                    <option value="1">الخيار الثاني</option>
+                    <option value="2">الخيار الثالث</option>
+                    <option value="3">الخيار الرابع</option>
+                </select>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeExerciseModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm">إلغاء</button>
+                <button onclick="saveLessonExercise()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium">حفظ التمرين</button>
             </div>
         </div>
     </div>
@@ -153,11 +183,12 @@
                                         {
                                             id: 'l7_1_1',
                                             title: 'بعض خواص التناسب',
-                                            content: `<h3>بعض خواص التناسب</h3><p>إذا كانت $a, b, c, d$ أربعة أعداد غير معدومة:</p><p>في التناسب $\\frac{a}{b} = \\frac{c}{d}$ نسمي الأعداد بالترتيب $a, b, c, d$ أعداد متناسبة.</p><p>في التناسب: $\\text{جداء الطرفين} = \\text{جداء الوسطين} \\Rightarrow a \\times d = b \\times c$</p>`
+                                            content: `<h3>بعض خواص التناسب</h3><p>إذا كانت $a, b, c, d$ أربعة أعداد غير معدومة:</p><p>في التناسب $\\frac{a}{b} = \\frac{c}{d}$ نسمي الأعداد بالترتيب أعداد متناسبة.</p>`,
+                                            exercises: [
+                                                { question: 'ناتج جداء الطرفين يساوي:', options: ['جداء الوسطين', 'مجموع الوسطين', 'فرق الوسطين', 'صفر'], correct: 0 }
+                                            ]
                                         }
-                                    ],
-                                    exercises: [],
-                                    exam: null
+                                    ]
                                 }
                             ]
                         },
@@ -225,7 +256,7 @@
             container.innerHTML = '';
 
             if (!book.units || book.units.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب. استخدم زر "إضافة وحدة جديدة".</p>`;
+                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات. استخدم زر "إضافة وحدة جديدة".</p>`;
                 return;
             }
 
@@ -238,14 +269,20 @@
                         <h4 class="font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h4>
                         <button onclick="deleteUnit('${gradeId}', '${bookId}', '${unit.id}')" class="text-rose-500 text-xs hover:underline"><i class="fa-solid fa-trash ml-1"></i> حذف الوحدة</button>
                     </div>
-                    <div class="space-y-2 pl-4">
+                    <div class="space-y-3 pl-4">
                 `;
                 if (unit.lessons && unit.lessons.length > 0) {
                     unit.lessons.forEach(l => {
+                        let exCount = l.exercises ? l.exercises.length : 0;
                         div.innerHTML += `
-                            <div class="flex justify-between items-center p-3 bg-white dark:bg-slate-800 rounded-xl text-sm">
-                                <span><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
-                                <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                            <div class="p-4 bg-white dark:bg-slate-800 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-sm"><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة تمرين (${exCount})</button>
+                                        <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     });
@@ -271,9 +308,7 @@
             book.units.push({
                 id: 'u_' + Date.now(),
                 name: name,
-                lessons: [],
-                exercises: [],
-                exam: null
+                lessons: []
             });
             localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
             closeAddUnitModal();
@@ -304,7 +339,7 @@
             let content = document.getElementById('new-lesson-content').value;
 
             if (!unitId || !title || !content) {
-                alert('الرجاء التأكد من تعبئة العنوان والمحتوى واختيار الوحدة.');
+                alert('الرجاء التأكد من تعبئة عنوان ومحتوى الدرس واختيار الوحدة.');
                 return;
             }
 
@@ -317,24 +352,74 @@
             unit.lessons.push({
                 id: 'l_' + Date.now(),
                 title: title,
-                content: content
+                content: content,
+                exercises: []
             });
 
             localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
             document.getElementById('new-lesson-title').value = '';
             document.getElementById('new-lesson-content').value = '';
-            document.getElementById('live-math-preview').innerHTML = 'تم الحفظ بنجاح!';
+            document.getElementById('live-math-preview').innerHTML = 'تم الحفظ!';
             renderAdminUnits();
-            alert('تم حفظ وإضافة الدرس بنجاح إلى المنصة!');
+            alert('تم حفظ وإضافة الدرس بنجاح!');
+        }
+
+        // Exercise Modal Management
+        function openExerciseModal(gradeId, bookId, unitId, lessonId) {
+            document.getElementById('ex-grade-id').value = gradeId;
+            document.getElementById('ex-book-id').value = bookId;
+            document.getElementById('ex-unit-id').value = unitId;
+            document.getElementById('ex-lesson-id').value = lessonId;
+            document.getElementById('exercise-modal').classList.remove('hidden');
+        }
+        function closeExerciseModal() {
+            document.getElementById('exercise-modal').classList.add('hidden');
+        }
+        function saveLessonExercise() {
+            let gId = document.getElementById('ex-grade-id').value;
+            let bId = document.getElementById('ex-book-id').value;
+            let uId = document.getElementById('ex-unit-id').value;
+            let lId = document.getElementById('ex-lesson-id').value;
+
+            let question = document.getElementById('ex-question').value;
+            let opt0 = document.getElementById('ex-opt0').value;
+            let opt1 = document.getElementById('ex-opt1').value;
+            let opt2 = document.getElementById('ex-opt2').value;
+            let opt3 = document.getElementById('ex-opt3').value;
+            let correct = parseInt(document.getElementById('ex-correct').value);
+
+            if (!question || !opt0 || !opt1) {
+                alert('الرجاء إدخال السؤال وخيارين على الأقل.');
+                return;
+            }
+
+            let unit = appData.grades.find(g => g.id === gId).books.find(b => b.id === bId).units.find(u => u.id === uId);
+            let lesson = unit.lessons.find(l => l.id === lId);
+
+            if (!lesson.exercises) lesson.exercises = [];
+            lesson.exercises.push({
+                question: question,
+                options: [opt0, opt1, opt2, opt3].filter(o => o.trim() !== ''),
+                correct: correct
+            });
+
+            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            closeExerciseModal();
+            // Clear inputs
+            document.getElementById('ex-question').value = '';
+            document.getElementById('ex-opt0').value = '';
+            document.getElementById('ex-opt1').value = '';
+            document.getElementById('ex-opt2').value = '';
+            document.getElementById('ex-opt3').value = '';
+            renderAdminUnits();
+            alert('تمت إضافة التمرين بنجاح إلى الدرس!');
         }
 
         function previewMathContent() {
             let val = document.getElementById('new-lesson-content').value;
             let preview = document.getElementById('live-math-preview');
             preview.innerHTML = val;
-            if (window.MathJax) {
-                MathJax.typesetPromise([preview]);
-            }
+            if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
         function handleDocxUpload(e) {
@@ -347,11 +432,9 @@
                         document.getElementById('new-lesson-content').value = result.value;
                         document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                         previewMathContent();
-                        alert('تم استخراج ملف Word بنجاح! ملاحظة: الرموز الرياضية المعقدة في Word يمكن كتابتها بصيغة MathJax (مثل $\\frac{a}{b}$) لتظهر باحترافية تامة.');
+                        alert('تم استخراج ملف Word بنجاح!');
                     })
-                    .catch(function(err) {
-                        alert('خطأ في قراءة ملف Word: ' + err.message);
-                    });
+                    .catch(function(err) { alert('خطأ: ' + err.message); });
             };
             reader.readAsArrayBuffer(file);
         }
@@ -376,9 +459,7 @@
                     localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
                     initAdmin();
                     alert('تم استعادة البيانات بنجاح!');
-                } catch(err) {
-                    alert('ملف النسخة الاحتياطية غير صالح.');
-                }
+                } catch(err) { alert('ملف النسخة الاحتياطية غير صالح.'); }
             };
             reader.readAsText(file);
         }
