@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<h<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -27,7 +26,7 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Mammoth.js for Word .docx Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <!-- JSZip for structural Word OMML in-place parsing -->
+    <!-- JSZip for in-place XML parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -39,7 +38,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">إ</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word مع الحفاظ التام على بنية وموقع المعادلات داخل النص</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word مع الحفاظ التام على موقع المعادلات والكسور داخل النص</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -87,7 +86,7 @@
                 <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (تبقى المعادلات في مكانها الأصلي داخل النص)</label>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (تبقى المعادلات والكسور في مكانها الأصلي)</label>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
@@ -103,7 +102,7 @@
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم RTL والمعادلات في سياقها الأصلي)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم RTL والمعادلات داخل السياق)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
                         <textarea id="new-lesson-content" rows="8" placeholder="اكتب الشرح هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
@@ -528,7 +527,7 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* --- دالة handleDocxUpload المحدثة للحفاظ التام على بنية وموقع العناصر --- */
+        /* --- دالة handleDocxUpload المحدثة لدمج المعادلات في موضعها الأصلي داخل الفقرات --- */
         async function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -538,54 +537,89 @@
                 let zip = new JSZip();
                 let zipContent = await zip.loadAsync(arrayBuffer);
 
-                // 1. استخراج النص الأساسي مع الصور عبر Mammoth.js
-                let result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, {
-                    convertImage: mammoth.images.imgElement(function(image) {
-                        return image.read("base64").then(function(imageBuffer) {
-                            return { src: `data:${image.contentType};base64,${imageBuffer}` };
-                        });
-                    })
-                });
-
-                let htmlOutput = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${result.value}</div>`;
-
-                // 2. تحليل مستند Word XML مباشرة للحصول على المعادلات في مواضعها الأصلية
+                // قراءة ملف document.xml الداخلي للتعرف على تسلسل الفقرات ومعادلات OMML بداخلها بالترتيب
                 let docXmlFile = zipContent.file("word/document.xml");
+                let extractedHtml = "";
+
                 if (docXmlFile) {
                     let docXmlText = await docXmlFile.async("text");
                     let parser = new DOMParser();
                     let xmlDoc = parser.parseFromString(docXmlText, "text/xml");
-                    
-                    // استخراج جميع وسوم الفقرات والسطور والمعادلات الحية
-                    let oMathNodes = xmlDoc.getElementsByTagNameNS("*", "oMath");
-                    
-                    // نقوم باستبدال أو حقن المعادلات مباشرة داخل السياق النصي
-                    for (let omath of oMathNodes) {
-                        let latex = convertOmmlToLatex(omath);
-                        let replacementHtml = "";
+
+                    // استخراج كافة الفقرات (w:p) لضمان بقاء التسلسل الحقيقي للكتاب تماماً
+                    let paragraphs = xmlDoc.getElementsByTagNameNS("*", "p");
+
+                    for (let p of paragraphs) {
+                        let pText = "";
+                        // فحص محتويات الفقرة عنصرًا بعنصر للحفاظ على الترتيب الأصلي (نصوص، صور، معادلات)
+                        let walker = xmlDoc.createTreeWalker(p, NodeFilter.SHOW_ELEMENT, null, false);
                         
-                        if (latex && latex.trim().length > 0) {
-                            replacementHtml = ` $${latex}$ `;
-                        } else {
-                            let rawText = omath.textContent || "معادلة";
-                            let svgUri = createSvgFallback(rawText);
-                            replacementHtml = ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                        let currentNode;
+                        let paragraphHtml = "<p class='my-2'>";
+                        
+                        // جمع النصوص والمعادلات المضمنة بالترتيب التسلسلي داخل الفقرة الواحدة
+                        for (let child of p.childNodes) {
+                            if (child.localName === 'r') {
+                                let tNode = child.getElementsByTagNameNS("*", "t")[0];
+                                if (tNode) paragraphHtml += tNode.textContent;
+                                
+                                let mathNodes = child.getElementsByTagNameNS("*", "oMath");
+                                for (let m of mathNodes) {
+                                    let latex = convertOmmlToLatex(m);
+                                    if (latex && latex.trim().length > 0) {
+                                        paragraphHtml += ` $${latex}$ `;
+                                    } else {
+                                        let rawText = m.textContent || "معادلة";
+                                        let svgUri = createSvgFallback(rawText);
+                                        paragraphHtml += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                                    }
+                                }
+                            } else if (child.localName === 'oMath') {
+                                let latex = convertOmmlToLatex(child);
+                                if (latex && latex.trim().length > 0) {
+                                    paragraphHtml += ` $${latex}$ `;
+                                } else {
+                                    let rawText = child.textContent || "معادلة";
+                                    let svgUri = createSvgFallback(rawText);
+                                    paragraphHtml += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                                }
+                            }
                         }
 
-                        // محاكاة إدراج المعادلة في النص (يمكننا استخدام علامة مؤقتة أو إلحاقها بترتيب الكوادر)
-                        // لتجنب فصل الفقرات، نقوم بإضافة النص الرياضي كجزء مدمج
-                        htmlOutput += `<span>${replacementHtml}</span>`;
+                        // إذا كانت الفقرة فارغة، نلجأ لمحتوى Mammoth الأساسي كبديل لضمان عدم ضياع أي جداول أو صور
+                        if (paragraphHtml === "<p class='my-2'>") {
+                            let mResult = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                            extractedHtml = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${mResult.value}</div>`;
+                            break;
+                        }
+
+                        paragraphHtml += "</p>";
+                        extractedHtml += paragraphHtml;
                     }
                 }
 
-                document.getElementById('new-lesson-content').value = htmlOutput;
+                // إذا لم يتم استخلاص شيء عبر الـ XML المباشر، نعتمد استخراج Mammoth الطبيعي
+                if (!extractedHtml || extractedHtml.trim() === "") {
+                    let result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, {
+                        convertImage: mammoth.images.imgElement(function(image) {
+                            return image.read("base64").then(function(imageBuffer) {
+                                return { src: `data:${image.contentType};base64,${imageBuffer}` };
+                            });
+                        })
+                    });
+                    extractedHtml = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${result.value}</div>`;
+                } else {
+                    extractedHtml = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${extractedHtml}</div>`;
+                }
+
+                document.getElementById('new-lesson-content').value = extractedHtml;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع الحفاظ على ترتيب الفقرات، الجداول، الصور، وموقع المعادلات داخل النص!');
+                alert('تم استيراد ملف Word بنجاح مع إدراج المعادلات والكسور في مكانها الأصلي داخل السطر والفقرة تماماً!');
 
             } catch (err) {
-                alert('حدث خطأ أثناء قراءة ملف Word: ' + err.message);
+                alert('حدث خطأ أثناء معالجة ملف Word: ' + err.message);
             }
         }
         /* -------------------------------------------------------------------------- */
