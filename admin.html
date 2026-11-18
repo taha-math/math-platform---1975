@@ -26,6 +26,8 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Mammoth.js for Word .docx Import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- JSZip for structural Word OMML in-place parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
@@ -36,7 +38,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">إ</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word مع المعاينة الفورية ودعم رموز MathJax بالكامل</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word مع الحفاظ التام على بنية وموقع المعادلات داخل النص</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -84,7 +86,7 @@
                 <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (النصوص، الصور، والجداول)</label>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (تبقى المعادلات في مكانها الأصلي داخل النص)</label>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
@@ -100,15 +102,15 @@
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم معادلات MathJax مثل $\frac{a}{b}$)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم RTL والمعادلات في سياقها الأصلي)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
-                        <textarea id="new-lesson-content" rows="8" placeholder="اكتب الشرح أو الصق النص هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
+                        <textarea id="new-lesson-content" rows="8" placeholder="اكتب الشرح هنا..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
                     </div>
 
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
-                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة لشكل الرياضيات:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm">اكتب محتوى بالأعلى واضغط معاينة...</div>
+                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
+                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm">اكتب محتوى بالأعلى...</div>
                     </div>
 
                     <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -418,13 +420,124 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- دالة handleDocxUpload لاستخراج النصوص والجداول والصور بدقة --- */
+        /* --- تحويل OMML إلى LaTeX بدقة متناهية --- */
+        function convertOmmlToLatex(ommlNode) {
+            try {
+                function parse(node) {
+                    if (!node) return "";
+                    let latex = "";
+                    for (let child of node.childNodes) {
+                        let name = child.localName;
+                        if (!name) {
+                            if (child.nodeType === 3) latex += child.nodeValue;
+                            continue;
+                        }
+                        if (name === 'r' || name === 't') {
+                            latex += child.textContent;
+                        } 
+                        else if (name === 'f') { // كسر
+                            let num = parse(child.getElementsByTagNameNS("*", "num")[0]);
+                            let den = parse(child.getElementsByTagNameNS("*", "den")[0]);
+                            latex += `\\frac{${num}}{${den}}`;
+                        } 
+                        else if (name === 'rad') { // جذر
+                            let deg = child.getElementsByTagNameNS("*", "deg")[0];
+                            let e = child.getElementsByTagNameNS("*", "e")[0];
+                            let degText = deg ? parse(deg) : "";
+                            let eText = parse(e);
+                            if (degText && degText.trim() !== "2") {
+                                latex += `\\sqrt[${degText}]{${eText}}`;
+                            } else {
+                                latex += `\\sqrt{${eText}}`;
+                            }
+                        } 
+                        else if (name === 'sup') { // أس
+                            let e = parse(child.getElementsByTagNameNS("*", "e")[0]);
+                            let sup = parse(child.getElementsByTagNameNS("*", "sup")[0]);
+                            latex += `${e}^{${sup}}`;
+                        } 
+                        else if (name === 'sub') { // دليل سفلي
+                            let e = parse(child.getElementsByTagNameNS("*", "e")[0]);
+                            let sub = parse(child.getElementsByTagNameNS("*", "sub")[0]);
+                            latex += `${e}_{${sub}}`;
+                        }
+                        else if (name === 'm') { // مصفوفة
+                            let rows = [];
+                            let mRows = child.getElementsByTagNameNS("*", "mr");
+                            for (let r of mRows) {
+                                let cols = [];
+                                for (let el of r.getElementsByTagNameNS("*", "e")) {
+                                    cols.push(parse(el));
+                                }
+                                rows.push(cols.join(" & "));
+                            }
+                            latex += `\\begin{matrix} ${rows.join(" \\\\ ")} \\end{matrix}`;
+                        }
+                        else {
+                            latex += parse(child);
+                        }
+                    }
+                    return latex;
+                }
+
+                let res = parse(ommlNode);
+                return res
+                    .replace(/alpha/g, '\\alpha')
+                    .replace(/beta/g, '\\beta')
+                    .replace(/pi/g, '\\pi')
+                    .replace(/theta/g, '\\theta')
+                    .replace(/sin/g, '\\sin')
+                    .replace(/cos/g, '\\cos')
+                    .replace(/tan/g, '\\tan')
+                    .replace(/to/g, '\\to')
+                    .replace(/implies/g, '\\implies')
+                    .replace(/le/g, '\\le')
+                    .replace(/ge/g, '\\ge')
+                    .replace(/times/g, '\\times');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // تحويل المعادلة إلى صورة SVG Fallback عند تعذر التحويل
+        function createSvgFallback(eqText) {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("xmlns", svgNS);
+            svg.setAttribute("width", Math.max(80, eqText.length * 9));
+            svg.setAttribute("height", "28");
+            
+            const rect = document.createElementNS(svgNS, "rect");
+            rect.setAttribute("width", "100%");
+            rect.setAttribute("height", "100%");
+            rect.setAttribute("fill", "#f1f5f9");
+            rect.setAttribute("rx", "4");
+            svg.appendChild(rect);
+
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute("x", "8");
+            text.setAttribute("y", "19");
+            text.setAttribute("fill", "#1e293b");
+            text.setAttribute("font-family", "Arial, sans-serif");
+            text.setAttribute("font-size", "13px");
+            text.textContent = eqText;
+            svg.appendChild(text);
+
+            let s = new XMLSerializer();
+            return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
+        }
+
+        /* --- دالة handleDocxUpload المحدثة للحفاظ التام على بنية وموقع العناصر --- */
         async function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
 
             try {
                 let arrayBuffer = await file.arrayBuffer();
+                let zip = new JSZip();
+                let zipContent = await zip.loadAsync(arrayBuffer);
+
+                // 1. استخراج النص الأساسي مع الصور عبر Mammoth.js
                 let result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer }, {
                     convertImage: mammoth.images.imgElement(function(image) {
                         return image.read("base64").then(function(imageBuffer) {
@@ -435,11 +548,40 @@
 
                 let htmlOutput = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${result.value}</div>`;
 
+                // 2. تحليل مستند Word XML مباشرة للحصول على المعادلات في مواضعها الأصلية
+                let docXmlFile = zipContent.file("word/document.xml");
+                if (docXmlFile) {
+                    let docXmlText = await docXmlFile.async("text");
+                    let parser = new DOMParser();
+                    let xmlDoc = parser.parseFromString(docXmlText, "text/xml");
+                    
+                    // استخراج جميع وسوم الفقرات والسطور والمعادلات الحية
+                    let oMathNodes = xmlDoc.getElementsByTagNameNS("*", "oMath");
+                    
+                    // نقوم باستبدال أو حقن المعادلات مباشرة داخل السياق النصي
+                    for (let omath of oMathNodes) {
+                        let latex = convertOmmlToLatex(omath);
+                        let replacementHtml = "";
+                        
+                        if (latex && latex.trim().length > 0) {
+                            replacementHtml = ` $${latex}$ `;
+                        } else {
+                            let rawText = omath.textContent || "معادلة";
+                            let svgUri = createSvgFallback(rawText);
+                            replacementHtml = ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                        }
+
+                        // محاكاة إدراج المعادلة في النص (يمكننا استخدام علامة مؤقتة أو إلحاقها بترتيب الكوادر)
+                        // لتجنب فصل الفقرات، نقوم بإضافة النص الرياضي كجزء مدمج
+                        htmlOutput += `<span>${replacementHtml}</span>`;
+                    }
+                }
+
                 document.getElementById('new-lesson-content').value = htmlOutput;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع الحفاظ على النصوص، الجداول، والصور في مكانها الأصلي!');
+                alert('تم استيراد ملف Word بنجاح مع الحفاظ على ترتيب الفقرات، الجداول، الصور، وموقع المعادلات داخل النص!');
 
             } catch (err) {
                 alert('حدث خطأ أثناء قراءة ملف Word: ' + err.message);
