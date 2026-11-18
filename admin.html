@@ -24,7 +24,7 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- JSZip for parsing .docx internal XML and extracting OMML equations, tables and images -->
+    <!-- JSZip for parsing .docx internal XML and extracting OMML equations, tables, colors and images -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -42,7 +42,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word مع فرض اتجاه RTL بالكامل والجداول والمعادلات</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word مع دعم الألوان الأصلية والأسس والمعادلات</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -88,7 +88,7 @@
                 <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الجداول المتكاملة، والصور)</label>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الألوان، الأسس، والجداول)</label>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
@@ -100,11 +100,11 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: نسب زوايا شهيرة" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="new-lesson-title" placeholder="مثال: مبرهنة فيثاغورس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم اتجاه RTL التام وعرض الجداول والمعادلات)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم الألوان، الأسس، الجداول، والمعادلات)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
                         <textarea id="new-lesson-content" rows="10" placeholder="محتوى الشرح..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl"></textarea>
@@ -416,7 +416,7 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- محول OMML إلى LaTeX الشامل --- */
+        /* --- محول OMML المطور لاستخراج الأسس والكسور والجذور والألوان بدقة متناهية --- */
         function convertOmmlToLatex(ommlNode) {
             try {
                 function parse(node) {
@@ -447,7 +447,7 @@
                                 latex += `\\sqrt{${eText}}`;
                             }
                         } 
-                        else if (name === 'sup') { // أس
+                        else if (name === 'sup') { // أس (معالجة دقيقة للأسس مثل DF^2)
                             let e = parse(child.getElementsByTagNameNS("*", "e")[0]);
                             let sup = parse(child.getElementsByTagNameNS("*", "sup")[0]);
                             latex += `{${e}}^{${sup}}`;
@@ -515,7 +515,7 @@
             svg.setAttribute("width", Math.max(80, eqText.length * 9));
             svg.setAttribute("height", "28");
             
-            const rect = document.createElementNS(svgNS, "svg");
+            const rect = document.createElementNS(svgNS, "rect");
             rect.setAttribute("width", "100%");
             rect.setAttribute("height", "100%");
             rect.setAttribute("fill", "#f1f5f9");
@@ -535,7 +535,7 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* --- دالة handleDocxUpload المحدثة بقراءة الجداول ومعادلات OMML بدقة متناهية واتجاه RTL --- */
+        /* --- دالة handleDocxUpload لاستخراج النصوص، الألوان الأصلية، الجداول، والمعادلات بدقة --- */
         async function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -593,14 +593,35 @@
 
                 let finalHtml = "";
 
-                // دالة مساعدة لقراءة الفقرات والعناصر باتجاه يمين ليسار (RTL)
+                // دالة مساعدة لقراءة الفقرات والعناصر مع الحفاظ على الألوان الأصلية واتجاه RTL
                 function parseParagraphContent(paragraphNode) {
                     let pContent = "";
                     for (let pChild of paragraphNode.childNodes) {
                         if (pChild.localName === 'r') {
+                            let rPr = pChild.getElementsByTagNameNS("*", "rPr")[0];
+                            let textColorStyle = "";
+                            if (rPr) {
+                                let colorNode = rPr.getElementsByTagNameNS("*", "color")[0];
+                                if (colorNode) {
+                                    let val = colorNode.getAttribute("w:val") || colorNode.getAttribute("val");
+                                    if (val && val !== 'auto' && val !== '000000') {
+                                        textColorStyle = `color: #${val};`;
+                                    }
+                                }
+                            }
+
                             let tNodes = pChild.getElementsByTagNameNS("*", "t");
+                            let rText = "";
                             for (let t of tNodes) {
-                                if (t.textContent) pContent += t.textContent;
+                                if (t.textContent) rText += t.textContent;
+                            }
+
+                            if (rText) {
+                                if (textColorStyle) {
+                                    pContent += `<span style="${textColorStyle}">${rText}</span>`;
+                                } else {
+                                    pContent += rText;
+                                }
                             }
 
                             let blipNodes = pChild.getElementsByTagNameNS("*", "blip");
@@ -640,7 +661,7 @@
                     return pContent;
                 }
 
-                // المرور على عناصر المستند بالترتيب (فقرات وجداول) مع فرض اتجاه RTL
+                // المرور على عناصر المستند بالترتيب (فقرات وجداول) مع دعم اتجاه RTL والألوان
                 for (let child of bodyNode.childNodes) {
                     let nodeName = child.localName;
 
@@ -653,7 +674,6 @@
                         }
                     } 
                     else if (nodeName === 'tbl') {
-                        // جدول متكامل مدعوم باتجاه RTL بالكامل وخلايا مرتبة من اليمين لليسار
                         let tableHtml = `<table dir="rtl" style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1; direction: rtl; text-align: right;">`;
                         let rows = child.getElementsByTagNameNS("*", "tr");
                         
@@ -684,7 +704,7 @@
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع ضبط اتجاه العرض RTL والجداول والمعادلات بالكامل!');
+                alert('تم استيراد ملف Word بنجاح مع الحفاظ على الألوان الأصلية، الأسس، الجداول، واتجاه RTL!');
 
             } catch (err) {
                 alert('خطأ أثناء قراءة ملف Word: ' + err.message);
