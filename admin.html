@@ -27,16 +27,22 @@
     <!-- JSZip for parsing .docx internal XML and extracting OMML equations, tables and images -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, textarea, input, select, table, td, th, div {
+            direction: rtl !important;
+            text-align: right !important;
+        }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col" dir="rtl">
 
     <!-- Header -->
-    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-20 flex items-center px-8 justify-between">
+    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-20 flex items-center px-8 justify-between" dir="rtl">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word بدعم كامل لاتجاه RTL، الجداول، والمعادلات</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word مع فرض اتجاه RTL بالكامل والجداول والمعادلات</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -50,7 +56,7 @@
     </header>
 
     <!-- Main Admin Body -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8" dir="rtl">
         
         <!-- Sidebar Controls -->
         <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6 h-fit">
@@ -82,7 +88,7 @@
                 <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الجداول بكامل محتواها، والصور)</label>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الجداول المتكاملة، والصور)</label>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
@@ -106,7 +112,7 @@
 
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
                         <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right;">اكتب محتوى بالأعلى واضغط معاينة...</div>
+                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right; direction: rtl;">اكتب محتوى بالأعلى واضغط معاينة...</div>
                     </div>
 
                     <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -116,7 +122,7 @@
     </main>
 
     <!-- Modal: Add Unit -->
-    <div id="unit-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="unit-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" dir="rtl">
         <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-bold">إضافة وحدة دراسية جديدة</h3>
             <input type="text" id="unit-name-input" placeholder="اسم الوحدة" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
@@ -128,7 +134,7 @@
     </div>
 
     <!-- Modal: Add Exercise -->
-    <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" dir="rtl">
         <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-bold text-emerald-600">إضافة تمرين تفاعلي للدرس</h3>
             <input type="hidden" id="ex-grade-id">
@@ -179,8 +185,8 @@
                                     lessons: [
                                         {
                                             id: 'l7_1_1',
-                                            title: 'درس نموذجى',
-                                            content: `<div dir="rtl" style="text-align: right;"><h3>محتوى تجريبي</h3></div>`,
+                                            title: 'درس نموذجي',
+                                            content: `<div dir="rtl" style="text-align: right; direction: rtl;"><h3>محتوى تجريبي</h3></div>`,
                                             exercises: []
                                         }
                                     ]
@@ -260,18 +266,18 @@
                 let div = document.createElement('div');
                 div.className = 'p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-4';
                 div.innerHTML = `
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center" dir="rtl">
                         <h4 class="font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h4>
                         <button onclick="deleteUnit('${gradeId}', '${bookId}', '${unit.id}')" class="text-rose-500 text-xs hover:underline"><i class="fa-solid fa-trash ml-1"></i> حذف الوحدة</button>
                     </div>
-                    <div class="space-y-3 pl-4">
+                    <div class="space-y-3 pl-4" dir="rtl">
                 `;
                 if (unit.lessons && unit.lessons.length > 0) {
                     unit.lessons.forEach(l => {
                         let exCount = l.exercises ? l.exercises.length : 0;
                         div.innerHTML += `
-                            <div class="p-4 bg-white dark:bg-slate-800 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700">
-                                <div class="flex justify-between items-center">
+                            <div class="p-4 bg-white dark:bg-slate-800 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700" dir="rtl">
+                                <div class="flex justify-between items-center" dir="rtl">
                                     <span class="font-bold text-sm"><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
                                     <div class="flex items-center gap-3">
                                         <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> تمارين (${exCount})</button>
@@ -343,7 +349,7 @@
             unit.lessons.push({
                 id: 'l_' + Date.now(),
                 title: title,
-                content: `<div dir="rtl" style="text-align: right; line-height: 1.8;">${content}</div>`,
+                content: `<div dir="rtl" style="text-align: right; direction: rtl;">${content}</div>`,
                 exercises: []
             });
 
@@ -406,7 +412,7 @@
         function previewMathContent() {
             let val = document.getElementById('new-lesson-content').value;
             let preview = document.getElementById('live-math-preview');
-            preview.innerHTML = `<div dir="rtl" style="text-align: right; line-height: 1.8;">${val}</div>`;
+            preview.innerHTML = `<div dir="rtl" style="text-align: right; direction: rtl;">${val}</div>`;
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
@@ -529,7 +535,7 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* --- دالة handleDocxUpload المحدثة بقراءة الجداول ومعادلات OMML بدقة متناهية --- */
+        /* --- دالة handleDocxUpload المحدثة بقراءة الجداول ومعادلات OMML بدقة متناهية واتجاه RTL --- */
         async function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -587,7 +593,7 @@
 
                 let finalHtml = "";
 
-                // دالة مساعدة لقراءة الفقرات والعناصر (تستخدم للفقرات العادية وداخل خلايا الجداول)
+                // دالة مساعدة لقراءة الفقرات والعناصر باتجاه يمين ليسار (RTL)
                 function parseParagraphContent(paragraphNode) {
                     let pContent = "";
                     for (let pChild of paragraphNode.childNodes) {
@@ -634,37 +640,25 @@
                     return pContent;
                 }
 
-                // المرور على عناصر المستند بالترتيب (فقرات وجداول)
+                // المرور على عناصر المستند بالترتيب (فقرات وجداول) مع فرض اتجاه RTL
                 for (let child of bodyNode.childNodes) {
                     let nodeName = child.localName;
 
                     if (nodeName === 'p') {
-                        let pAlign = "text-align: right;";
-                        let pPr = child.getElementsByTagNameNS("*", "pPr")[0];
-                        if (pPr) {
-                            let jc = pPr.getElementsByTagNameNS("*", "jc")[0];
-                            if (jc) {
-                                let val = jc.getAttribute("w:val") || jc.getAttribute("val");
-                                if (val === 'center') pAlign = "text-align: center;";
-                                else if (val === 'right') pAlign = "text-align: right;";
-                                else if (val === 'left') pAlign = "text-align: left;";
-                            }
-                        }
-
                         let pContent = parseParagraphContent(child);
                         if (pContent.trim() !== "") {
-                            finalHtml += `<p style="margin-bottom: 12px; ${pAlign}">${pContent}</p>`;
+                            finalHtml += `<p dir="rtl" style="margin-bottom: 12px; text-align: right; direction: rtl;">${pContent}</p>`;
                         } else {
                             finalHtml += `<br>`;
                         }
                     } 
                     else if (nodeName === 'tbl') {
-                        // جدول متكامل مع الحفاظ على كل النصوص والرموز والمعادلات داخل خلاياه
-                        let tableHtml = `<table style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1; direction: rtl; text-align: right;">`;
+                        // جدول متكامل مدعوم باتجاه RTL بالكامل وخلايا مرتبة من اليمين لليسار
+                        let tableHtml = `<table dir="rtl" style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1; direction: rtl; text-align: right;">`;
                         let rows = child.getElementsByTagNameNS("*", "tr");
                         
                         for (let tr of rows) {
-                            tableHtml += `<tr>`;
+                            tableHtml += `<tr dir="rtl">`;
                             let cells = tr.getElementsByTagNameNS("*", "tc");
                             for (let tc of cells) {
                                 let cellHtml = "";
@@ -672,10 +666,10 @@
                                 for (let cp of cellParas) {
                                     let cpText = parseParagraphContent(cp);
                                     if (cpText.trim() !== "") {
-                                        cellHtml += `<div style="margin-bottom: 4px;">${cpText}</div>`;
+                                        cellHtml += `<div dir="rtl" style="margin-bottom: 4px; text-align: right; direction: rtl;">${cpText}</div>`;
                                     }
                                 }
-                                tableHtml += `<td style="border: 1px solid #cbd5e1; padding: 10px; text-align: right; vertical-align: middle;">${cellHtml}</td>`;
+                                tableHtml += `<td dir="rtl" style="border: 1px solid #cbd5e1; padding: 10px; text-align: right; direction: rtl; vertical-align: middle;">${cellHtml}</td>`;
                             }
                             tableHtml += `</tr>`;
                         }
@@ -690,7 +684,7 @@
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع عرض الجداول، النصوص، والمعادلات باتجاه RTL وبشكل كامل!');
+                alert('تم استيراد ملف Word بنجاح مع ضبط اتجاه العرض RTL والجداول والمعادلات بالكامل!');
 
             } catch (err) {
                 alert('خطأ أثناء قراءة ملف Word: ' + err.message);
