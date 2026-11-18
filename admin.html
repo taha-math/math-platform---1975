@@ -47,12 +47,12 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">إدارة المناهج والدروس بدعم كامل للأسس والمعادلات</p>
+                <p class="text-xs text-slate-500">دعم رفع الملفات ولصق لقطات الشاشة مباشرة</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
             <a href="index.html" target="_blank" class="bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-200 transition"><i class="fa-solid fa-globe ml-1"></i> استعراض المنصة</a>
-            <button onclick="resetPlatformData()" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-rotate-right ml-1"></i> إصلاح وتصفير البيانات</button>
+            <button onclick="resetPlatformData()" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-rotate-right ml-1"></i> تصفير البيانات</button>
             <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-download ml-1"></i> تصدير Backup</button>
         </div>
     </header>
@@ -89,7 +89,7 @@
 
             <!-- Advanced File Import & Editor Panel -->
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-arrow-up ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات (Word أو PDF)</h3>
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-arrow-up ml-2 text-blue-600"></i> محرر الدروس ورفع الملفات (أو اللصق المباشر)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
                         <label class="block text-sm font-semibold mb-1">اختر ملف الدرس (Word .docx أو PDF .pdf)</label>
@@ -104,19 +104,20 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: مبرهنة فيثاغورس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="new-lesson-title" placeholder="مثال: عنوان الدرس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم الأسس ومعاينة MathJax)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس (يمكنك الضغط هنا ولصق لقطة الشاشة مباشرة Ctrl + V)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
-                        <textarea id="new-lesson-content" rows="10" placeholder="محتوى الشرح..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl"></textarea>
+                        <!-- تمت إضافة خاصية معالجة اللصق المباشر للصور هنا -->
+                        <textarea id="new-lesson-content" rows="10" placeholder="اكتب الشرح أو اضغط هنا والصف لقطة الشاشة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl" onpaste="handleDirectPaste(event)"></textarea>
                     </div>
 
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
                         <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right; direction: rtl;">اكتب محتوى بالأعلى واضغط معاينة...</div>
+                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right; direction: rtl;">اكتب محتوى بالأعلى أو الصق صورة لمعاينتها...</div>
                     </div>
 
                     <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -332,6 +333,30 @@
             });
         }
 
+        /* --- دالة معالجة اللصق المباشر للصور (Ctrl + V) داخل صندوق النص --- */
+        function handleDirectPaste(e) {
+            let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.type.indexOf("image") === 0) {
+                    e.preventDefault();
+                    let blob = item.getAsFile();
+                    let reader = new FileReader();
+                    reader.onload = function(event) {
+                        let base64Img = event.target.result;
+                        let imgTag = `\n<img src="${base64Img}" alt="Screenshot" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" />\n`;
+                        
+                        let textarea = document.getElementById('new-lesson-content');
+                        let startPos = textarea.selectionStart;
+                        let endPos = textarea.selectionEnd;
+                        textarea.value = textarea.value.substring(0, startPos) + imgTag + textarea.value.substring(endPos, textarea.value.length);
+                        previewMathContent();
+                        alert('تم لصق لقطة الشاشة بنجاح وإدراجها في المحتوى!');
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        }
+
         function openAddGradeModal() { document.getElementById('grade-modal').classList.remove('hidden'); }
         function closeAddGradeModal() { document.getElementById('grade-modal').classList.add('hidden'); }
         function confirmAddGrade() {
@@ -482,7 +507,7 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- محول OMML المحسّن لاستخراج الأسس بدقة تامة (مثل DF^2) --- */
+        /* --- تحويل OMML إلى LaTeX مع دعم الأسس --- */
         function convertOmmlToLatex(ommlNode) {
             try {
                 function parse(node) {
@@ -497,12 +522,12 @@
                         if (name === 'r' || name === 't') {
                             latex += child.textContent;
                         } 
-                        else if (name === 'f') { // كسر
+                        else if (name === 'f') {
                             let num = parse(child.getElementsByTagNameNS("*", "num")[0]);
                             let den = parse(child.getElementsByTagNameNS("*", "den")[0]);
                             latex += `\\frac{${num}}{${den}}`;
                         } 
-                        else if (name === 'rad') { // جذر
+                        else if (name === 'rad') {
                             let deg = child.getElementsByTagNameNS("*", "deg")[0];
                             let e = child.getElementsByTagNameNS("*", "e")[0];
                             let degText = deg ? parse(deg) : "";
@@ -513,7 +538,7 @@
                                 latex += `\\sqrt{${eText}}`;
                             }
                         } 
-                        else if (name === 'sup') { // الأسس العلوية (تصحيح التقاط الأسس بجميع حالاتها)
+                        else if (name === 'sup') {
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let supNodes = child.getElementsByTagNameNS("*", "sup");
                             let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
@@ -522,7 +547,7 @@
                             if (!supText && child.childNodes.length > 1) supText = parse(child.childNodes[1]);
                             latex += `{${baseText || ''}}^{${supText || ''}}`;
                         } 
-                        else if (name === 'sub') { // الدليل السفلي
+                        else if (name === 'sub') {
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let subNodes = child.getElementsByTagNameNS("*", "sub");
                             let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
@@ -569,7 +594,7 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* --- معالجة الملفات الموحدة (Word & PDF) مع الحفاظ على الألوان الأصلية والأسس --- */
+        /* --- معالجة الملفات (Word & PDF) --- */
         async function handleFileDropUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -685,7 +710,7 @@
                 document.getElementById('new-lesson-content').value = `<div dir="rtl" style="text-align: right; direction: rtl; line-height: 1.8;">${finalHtml}</div>`;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
-                alert('تم استيراد ملف Word بنجاح مع دعم الألوان والأسس!');
+                alert('تم استيراد ملف Word بنجاح!');
             } catch (err) {
                 alert('خطأ في قراءة ملف Word: ' + err.message);
             }
