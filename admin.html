@@ -24,8 +24,13 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- JSZip for parsing .docx internal XML and extracting OMML equations, tables, colors and images -->
+    <!-- JSZip for Word files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- PDF.js for reading and extracting text from PDF files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body, textarea, input, select, table, td, th, div {
@@ -42,7 +47,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word مع دعم الألوان الأصلية والأسس والمعادلات</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word و PDF مع دعم اتجاه RTL الكامل</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -83,13 +88,13 @@
                 <div id="admin-units-container" class="space-y-6"></div>
             </div>
 
-            <!-- Advanced Word & Editor Panel -->
+            <!-- Advanced Word & PDF Import Panel -->
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-arrow-up ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات (Word .docx أو PDF)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الألوان، الأسس، والجداول)</label>
-                        <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
+                        <label class="block text-sm font-semibold mb-1">اختر ملف الدرس (يدعم Word أو PDF تلقائياً)</label>
+                        <input type="file" accept=".docx,.pdf" onchange="handleFile годомUpload(event)" id="lesson-file-input" class="text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold mb-1">اختر الوحدة لإضافة الدرس</label>
@@ -100,11 +105,11 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: مبرهنة فيثاغورس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="new-lesson-title" placeholder="مثال: عنوان الدرس المستورد" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم الألوان، الأسس، الجداول، والمعادلات)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس المستخرج (قابل للتعديل المباشر ومعاينة MathJax)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
                         <textarea id="new-lesson-content" rows="10" placeholder="محتوى الشرح..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl"></textarea>
@@ -416,7 +421,7 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- محول OMML المطور لاستخراج الأسس والكسور والجذور والألوان بدقة متناهية --- */
+        /* --- محول OMML إلى LaTeX المطور للأسس والكسور والجذور والألوان --- */
         function convertOmmlToLatex(ommlNode) {
             try {
                 function parse(node) {
@@ -447,7 +452,7 @@
                                 latex += `\\sqrt{${eText}}`;
                             }
                         } 
-                        else if (name === 'sup') { // أس (معالجة دقيقة للأسس مثل DF^2)
+                        else if (name === 'sup') { // أسس
                             let e = parse(child.getElementsByTagNameNS("*", "e")[0]);
                             let sup = parse(child.getElementsByTagNameNS("*", "sup")[0]);
                             latex += `{${e}}^{${sup}}`;
@@ -507,7 +512,7 @@
             }
         }
 
-        // دالة SVG بديلة عند تعذر تحويل المعادلة
+        // دالة SVG بديلة عند تعذر التحويل
         function createSvgFallback(eqText) {
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
@@ -535,17 +540,29 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* --- دالة handleDocxUpload لاستخراج النصوص، الألوان الأصلية، الجداول، والمعادلات بدقة --- */
-        async function handleDocxUpload(e) {
+        /* --- دالة معالجة الملفات الموحدة (تدعم Word .docx و PDF .pdf معاً) --- */
+        async function handleFile годомUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
 
+            let fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.docx')) {
+                await handleDocxUpload(file);
+            } else if (fileName.endsWith('.pdf')) {
+                await handlePdfUpload(file);
+            } else {
+                alert('الرجاء اختيار ملف بصيغة Word (.docx) أو PDF (.pdf) فقط.');
+            }
+        }
+
+        // معالجة ملفات Word .docx
+        async function handleDocxUpload(file) {
             try {
                 let arrayBuffer = await file.arrayBuffer();
                 let zip = new JSZip();
                 let zipContent = await zip.loadAsync(arrayBuffer);
 
-                // استخراج الصور وتخزينها بصيغة Base64
                 let imagesBase64 = {};
                 let mediaFiles = zipContent.folder("word/media");
                 if (mediaFiles) {
@@ -560,7 +577,6 @@
                     }
                 }
 
-                // قراءة ملف علاقات المستند (word/_rels/document.xml.rels) لربط الصور
                 let relsMap = {};
                 let relsFile = zipContent.file("word/_rels/document.xml.rels");
                 if (relsFile) {
@@ -593,7 +609,6 @@
 
                 let finalHtml = "";
 
-                // دالة مساعدة لقراءة الفقرات والعناصر مع الحفاظ على الألوان الأصلية واتجاه RTL
                 function parseParagraphContent(paragraphNode) {
                     let pContent = "";
                     for (let pChild of paragraphNode.childNodes) {
@@ -661,7 +676,6 @@
                     return pContent;
                 }
 
-                // المرور على عناصر المستند بالترتيب (فقرات وجداول) مع دعم اتجاه RTL والألوان
                 for (let child of bodyNode.childNodes) {
                     let nodeName = child.localName;
 
@@ -704,10 +718,38 @@
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع الحفاظ على الألوان الأصلية، الأسس، الجداول، واتجاه RTL!');
+                alert('تم استيراد ملف Word بنجاح مع الحفاظ على الألوان الأصلية، الأسس، والاتجاه RTL!');
 
             } catch (err) {
                 alert('خطأ أثناء قراءة ملف Word: ' + err.message);
+            }
+        }
+
+        // معالجة ملفات PDF .pdf الجديدة
+        async function handlePdfUpload(file) {
+            try {
+                let arrayBuffer = await file.arrayBuffer();
+                let loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                let pdfDoc = await loadingTask.promise;
+                let extractedText = "";
+
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    let page = await pdfDoc.getPage(i);
+                    let textContent = await page.getTextContent();
+                    let pageText = textContent.items.map(item => item.str).join(" ");
+                    extractedText += `<p dir="rtl" style="margin-bottom: 12px; text-align: right; direction: rtl;">${pageText}</p>`;
+                }
+
+                let wrappedHtml = `<div dir="rtl" style="text-align: right; direction: rtl; line-height: 1.8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${extractedText}</div>`;
+
+                document.getElementById('new-lesson-content').value = wrappedHtml;
+                document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
+                previewMathContent();
+
+                alert('تم استيراد ملف PDF بنجاح واستخراج نصوصه باتجاه RTL!');
+
+            } catch (err) {
+                alert('خطأ أثناء قراءة ملف PDF: ' + err.message);
             }
         }
         /* ========================================================================== */
