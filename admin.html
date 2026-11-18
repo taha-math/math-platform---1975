@@ -24,7 +24,7 @@
         };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <!-- JSZip for parsing .docx internal XML and extracting OMML equations and images -->
+    <!-- JSZip for parsing .docx internal XML and extracting OMML equations, tables and images -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -36,7 +36,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">استيراد ملفات Word مع الحفاظ التام على موقع المعادلات والكسور والجداول والصور داخل النص</p>
+                <p class="text-xs text-slate-500">استيراد ملفات Word بدعم كامل لاتجاه RTL، الجداول، والمعادلات</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -79,10 +79,10 @@
 
             <!-- Advanced Word & Editor Panel -->
             <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx) التلقائي</h3>
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-word ml-2 text-blue-600"></i> محرر الدروس ورفع ملفات Word (.docx)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
                     <div>
-                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج فوري للمعادلات والجذور والأسس والجدول والصور)</label>
+                        <label class="block text-sm font-semibold mb-1">رفع ملف Word (استخراج النصوص، الجداول بكامل محتواها، والصور)</label>
                         <input type="file" accept=".docx" onchange="handleDocxUpload(event)" class="text-sm">
                     </div>
                     <div>
@@ -94,19 +94,19 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: الدرس الأول: خواص التناسب" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="new-lesson-title" placeholder="مثال: نسب زوايا شهيرة" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم MathJax وتنسيق RTL)</label>
+                            <label class="block text-sm font-medium">محتوى الدرس (مع دعم اتجاه RTL التام وعرض الجداول والمعادلات)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
-                        <textarea id="new-lesson-content" rows="10" placeholder="محتوى الشرح..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono"></textarea>
+                        <textarea id="new-lesson-content" rows="10" placeholder="محتوى الشرح..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl"></textarea>
                     </div>
 
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
-                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة للمعادلات:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm">اكتب محتوى بالأعلى واضغط معاينة...</div>
+                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
+                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right;">اكتب محتوى بالأعلى واضغط معاينة...</div>
                     </div>
 
                     <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
@@ -119,7 +119,7 @@
     <div id="unit-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
             <h3 class="text-lg font-bold">إضافة وحدة دراسية جديدة</h3>
-            <input type="text" id="unit-name-input" placeholder="اسم الوحدة (مثال: الوحدة الأولى: التناسب)" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
+            <input type="text" id="unit-name-input" placeholder="اسم الوحدة" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
             <div class="flex justify-end gap-3">
                 <button onclick="closeAddUnitModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm">إلغاء</button>
                 <button onclick="confirmAddUnit()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-medium">حفظ الوحدة</button>
@@ -137,7 +137,7 @@
             <input type="hidden" id="ex-lesson-id">
             <div>
                 <label class="block text-sm font-medium mb-1">نص السؤال</label>
-                <input type="text" id="ex-question" placeholder="مثال: احسب قيمة x" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
+                <input type="text" id="ex-question" placeholder="السؤال" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <input type="text" id="ex-opt0" placeholder="الخيار الأول" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
@@ -146,7 +146,7 @@
                 <input type="text" id="ex-opt3" placeholder="الخيار الرابع" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">رقم الإجابة الصحيحة</label>
+                <label class="block text-sm font-medium mb-1">الإجابة الصحيحة</label>
                 <select id="ex-correct" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
                     <option value="0">الخيار الأول</option>
                     <option value="1">الخيار الثاني</option>
@@ -175,12 +175,12 @@
                             units: [
                                 {
                                     id: 'u7_1',
-                                    name: 'الوحدة الأولى: الأعداد الصحيحة والكسور',
+                                    name: 'الوحدة الأولى',
                                     lessons: [
                                         {
                                             id: 'l7_1_1',
-                                            title: 'بعض خواص التناسب',
-                                            content: `<div dir="rtl"><h3>بعض خواص التناسب</h3><p>إذا كانت $a, b, c, d$ أربعة أعداد غير معدومة:</p><p>في التناسب $\\frac{a}{b} = \\frac{c}{d}$ نسمي الأعداد بالترتيب أعداد متناسبة.</p></div>`,
+                                            title: 'درس نموذجى',
+                                            content: `<div dir="rtl" style="text-align: right;"><h3>محتوى تجريبي</h3></div>`,
                                             exercises: []
                                         }
                                     ]
@@ -251,7 +251,7 @@
             container.innerHTML = '';
 
             if (!book.units || book.units.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات. استخدم زر "إضافة وحدة جديدة".</p>`;
+                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات.</p>`;
                 return;
             }
 
@@ -274,7 +274,7 @@
                                 <div class="flex justify-between items-center">
                                     <span class="font-bold text-sm"><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
                                     <div class="flex items-center gap-3">
-                                        <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة تمرين (${exCount})</button>
+                                        <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> تمارين (${exCount})</button>
                                         <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
                                     </div>
                                 </div>
@@ -294,17 +294,13 @@
         
         function confirmAddUnit() {
             let name = document.getElementById('unit-name-input').value;
-            if (!name) return alert('الرجاء إدخال اسم الوحدة');
+            if (!name) return alert('أدخل اسم الوحدة');
             let gradeId = document.getElementById('admin-grade-select').value;
             let bookId = document.getElementById('admin-book-select').value;
             let grade = appData.grades.find(g => g.id === gradeId);
             let book = grade.books.find(b => b.id === bookId);
             if (!book.units) book.units = [];
-            book.units.push({
-                id: 'u_' + Date.now(),
-                name: name,
-                lessons: []
-            });
+            book.units.push({ id: 'u_' + Date.now(), name: name, lessons: [] });
             localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
             closeAddUnitModal();
             document.getElementById('unit-name-input').value = '';
@@ -313,7 +309,7 @@
         }
 
         function deleteUnit(gradeId, bookId, unitId) {
-            if (!confirm('هل أنت متأكد من حذف هذه الوحدة؟')) return;
+            if (!confirm('حذف هذه الوحدة؟')) return;
             let book = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId);
             book.units = book.units.filter(u => u.id !== unitId);
             localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
@@ -321,7 +317,7 @@
         }
 
         function deleteLesson(gradeId, bookId, unitId, lessonId) {
-            if (!confirm('هل أنت متأكد من حذف هذا الدرس؟')) return;
+            if (!confirm('حذف هذا الدرس؟')) return;
             let unit = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId).units.find(u => u.id === unitId);
             unit.lessons = unit.lessons.filter(l => l.id !== lessonId);
             localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
@@ -356,7 +352,7 @@
             document.getElementById('new-lesson-content').value = '';
             document.getElementById('live-math-preview').innerHTML = 'تم الحفظ!';
             renderAdminUnits();
-            alert('تم حفظ وإضافة الدرس بنجاح!');
+            alert('تم حفظ الدرس بنجاح!');
         }
 
         function openExerciseModal(gradeId, bookId, unitId, lessonId) {
@@ -366,9 +362,8 @@
             document.getElementById('ex-lesson-id').value = lessonId;
             document.getElementById('exercise-modal').classList.remove('hidden');
         }
-        function closeExerciseModal() {
-            document.getElementById('exercise-modal').classList.add('hidden');
-        }
+        function closeExerciseModal() { document.getElementById('exercise-modal').classList.add('hidden'); }
+        
         function saveLessonExercise() {
             let gId = document.getElementById('ex-grade-id').value;
             let bId = document.getElementById('ex-book-id').value;
@@ -383,7 +378,7 @@
             let correct = parseInt(document.getElementById('ex-correct').value);
 
             if (!question || !opt0 || !opt1) {
-                alert('الرجاء إدخال السؤال وخيارين على الأقل.');
+                alert('أدخل السؤال وخيارين على الأقل.');
                 return;
             }
 
@@ -415,9 +410,7 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* ==========================================================================
-           محول OMML الشامل إلى LaTeX (يدعم الكسور، الجذور، الأسس، المصفوفات، النسب)
-           ========================================================================== */
+        /* --- محول OMML إلى LaTeX الشامل --- */
         function convertOmmlToLatex(ommlNode) {
             try {
                 function parse(node) {
@@ -458,7 +451,7 @@
                             let sub = parse(child.getElementsByTagNameNS("*", "sub")[0]);
                             latex += `{${e}}_{${sub}}`;
                         }
-                        else if (name === 'd') { // أقواس محيطة
+                        else if (name === 'd') { // أقواس
                             let b = parse(child.getElementsByTagNameNS("*", "begChr")[0] || {textContent: "("});
                             let en = parse(child.getElementsByTagNameNS("*", "endChr")[0] || {textContent: ")"});
                             let eNodes = child.getElementsByTagNameNS("*", "e");
@@ -508,7 +501,7 @@
             }
         }
 
-        // دالة إنتاج SVG بديل (Fallback) في حال تعذر تحويل المعادلة
+        // دالة SVG بديلة عند تعذر تحويل المعادلة
         function createSvgFallback(eqText) {
             const svgNS = "http://www.w3.org/2000/svg";
             const svg = document.createElementNS(svgNS, "svg");
@@ -516,7 +509,7 @@
             svg.setAttribute("width", Math.max(80, eqText.length * 9));
             svg.setAttribute("height", "28");
             
-            const rect = document.createElementNS(svgNS, "rect");
+            const rect = document.createElementNS(svgNS, "svg");
             rect.setAttribute("width", "100%");
             rect.setAttribute("height", "100%");
             rect.setAttribute("fill", "#f1f5f9");
@@ -536,9 +529,7 @@
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
 
-        /* ==========================================================================
-           دالة handleDocxUpload التلقائية الكاملة (النصوص، الجداول، الصور، المعادلات)
-           ========================================================================== */
+        /* --- دالة handleDocxUpload المحدثة بقراءة الجداول ومعادلات OMML بدقة متناهية --- */
         async function handleDocxUpload(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -563,7 +554,7 @@
                     }
                 }
 
-                // قراءة ملف علاقات المستند (word/_rels/document.xml.rels) لربط الصور بمصادرها
+                // قراءة ملف علاقات المستند (word/_rels/document.xml.rels) لربط الصور
                 let relsMap = {};
                 let relsFile = zipContent.file("word/_rels/document.xml.rels");
                 if (relsFile) {
@@ -579,10 +570,9 @@
                     }
                 }
 
-                // قراءة هيكل الـ XML الأساسي للمستند word/document.xml للحفاظ التام على ترتيب الفقرات والجداول
                 let docXmlFile = zipContent.file("word/document.xml");
                 if (!docXmlFile) {
-                    alert('ملف Word غير صالح أو تالف.');
+                    alert('ملف Word غير صالح.');
                     return;
                 }
 
@@ -591,22 +581,65 @@
 
                 let bodyNode = xmlDoc.getElementsByTagNameNS("*", "body")[0];
                 if (!bodyNode) {
-                    alert('لم يتم العثور على محتوى النص داخل ملف Word.');
+                    alert('لم يتم العثور على محتوى النص.');
                     return;
                 }
 
                 let finalHtml = "";
 
-                // حلقة تكرارية تحليلية تمر على كافة عناصر الجسم (فقرات w:p أو جداول w:tbl) بالترتيب الأصلي 100%
+                // دالة مساعدة لقراءة الفقرات والعناصر (تستخدم للفقرات العادية وداخل خلايا الجداول)
+                function parseParagraphContent(paragraphNode) {
+                    let pContent = "";
+                    for (let pChild of paragraphNode.childNodes) {
+                        if (pChild.localName === 'r') {
+                            let tNodes = pChild.getElementsByTagNameNS("*", "t");
+                            for (let t of tNodes) {
+                                if (t.textContent) pContent += t.textContent;
+                            }
+
+                            let blipNodes = pChild.getElementsByTagNameNS("*", "blip");
+                            for (let blip of blipNodes) {
+                                let embedId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
+                                if (embedId && relsMap[embedId]) {
+                                    let imgKey = relsMap[embedId];
+                                    if (imagesBase64[imgKey]) {
+                                        pContent += ` <img src="${imagesBase64[imgKey]}" alt="Image" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" /> `;
+                                    }
+                                }
+                            }
+
+                            let mathNodes = pChild.getElementsByTagNameNS("*", "oMath");
+                            for (let m of mathNodes) {
+                                let latex = convertOmmlToLatex(m);
+                                if (latex && latex.trim().length > 0) {
+                                    pContent += ` $${latex}$ `;
+                                } else {
+                                    let rawText = m.textContent || "معادلة";
+                                    let svgUri = createSvgFallback(rawText);
+                                    pContent += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                                }
+                            }
+                        } 
+                        else if (pChild.localName === 'oMath') {
+                            let latex = convertOmmlToLatex(pChild);
+                            if (latex && latex.trim().length > 0) {
+                                pContent += ` $${latex}$ `;
+                            } else {
+                                let rawText = pChild.textContent || "معادلة";
+                                let svgUri = createSvgFallback(rawText);
+                                pContent += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
+                            }
+                        }
+                    }
+                    return pContent;
+                }
+
+                // المرور على عناصر المستند بالترتيب (فقرات وجداول)
                 for (let child of bodyNode.childNodes) {
                     let nodeName = child.localName;
 
                     if (nodeName === 'p') {
-                        // معالجة الفقرة العادية أو العنوان
-                        let pContent = "";
-                        let pAlign = "";
-                        
-                        // التحقق من محاذاة النص
+                        let pAlign = "text-align: right;";
                         let pPr = child.getElementsByTagNameNS("*", "pPr")[0];
                         if (pPr) {
                             let jc = pPr.getElementsByTagNameNS("*", "jc")[0];
@@ -618,53 +651,7 @@
                             }
                         }
 
-                        // فحص العناصر داخل الفقرة (نصوص w:r، صور drawing، معادلات oMath) بترتيبها الفعلي
-                        for (let pChild of child.childNodes) {
-                            if (pChild.localName === 'r') {
-                                // النصوص العادية
-                                let tNodes = pChild.getElementsByTagNameNS("*", "t");
-                                for (let t of tNodes) {
-                                    if (t.textContent) pContent += t.textContent;
-                                }
-
-                                // الصور المضمنة داخل w:r
-                                let blipNodes = pChild.getElementsByTagNameNS("*", "blip");
-                                for (let blip of blipNodes) {
-                                    let embedId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
-                                    if (embedId && relsMap[embedId]) {
-                                        let imgKey = relsMap[embedId];
-                                        if (imagesBase64[imgKey]) {
-                                            pContent += ` <img src="${imagesBase64[imgKey]}" alt="Lesson Image" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" /> `;
-                                        }
-                                    }
-                                }
-
-                                // المعادلات الرياضية داخل w:r
-                                let mathNodes = pChild.getElementsByTagNameNS("*", "oMath");
-                                for (let m of mathNodes) {
-                                    let latex = convertOmmlToLatex(m);
-                                    if (latex && latex.trim().length > 0) {
-                                        pContent += ` $${latex}$ `;
-                                    } else {
-                                        let rawText = m.textContent || "معادلة";
-                                        let svgUri = createSvgFallback(rawText);
-                                        pContent += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
-                                    }
-                                }
-                            } 
-                            else if (pChild.localName === 'oMath') {
-                                // المعادلة كعنصر مستقل داخل الفقرة
-                                let latex = convertOmmlToLatex(pChild);
-                                if (latex && latex.trim().length > 0) {
-                                    pContent += ` $${latex}$ `;
-                                } else {
-                                    let rawText = pChild.textContent || "معادلة";
-                                    let svgUri = createSvgFallback(rawText);
-                                    pContent += ` <img src="${svgUri}" alt="math" style="display:inline-block; vertical-align:middle; margin:0 3px;" /> `;
-                                }
-                            }
-                        }
-
+                        let pContent = parseParagraphContent(child);
                         if (pContent.trim() !== "") {
                             finalHtml += `<p style="margin-bottom: 12px; ${pAlign}">${pContent}</p>`;
                         } else {
@@ -672,36 +659,23 @@
                         }
                     } 
                     else if (nodeName === 'tbl') {
-                        // معالجة الجداول الرياضية والجداول العادية بدقة متناهية
-                        let tableHtml = `<table style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1;">`;
+                        // جدول متكامل مع الحفاظ على كل النصوص والرموز والمعادلات داخل خلاياه
+                        let tableHtml = `<table style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1; direction: rtl; text-align: right;">`;
                         let rows = child.getElementsByTagNameNS("*", "tr");
                         
                         for (let tr of rows) {
                             tableHtml += `<tr>`;
                             let cells = tr.getElementsByTagNameNS("*", "tc");
                             for (let tc of cells) {
-                                let cellText = "";
-                                // معالجة محتوى الخلية بنفس منطق الفقرات لدعم المعادلات والصور داخل الجداول
+                                let cellHtml = "";
                                 let cellParas = tc.getElementsByTagNameNS("*", "p");
                                 for (let cp of cellParas) {
-                                    for (let cpChild of cp.childNodes) {
-                                        if (cpChild.localName === 'r') {
-                                            let tNodes = cpChild.getElementsByTagNameNS("*", "t");
-                                            for (let t of tNodes) { if (t.textContent) cellText += t.textContent; }
-                                            
-                                            let mathNodes = cpChild.getElementsByTagNameNS("*", "oMath");
-                                            for (let m of mathNodes) {
-                                                let latex = convertOmmlToLatex(m);
-                                                if (latex) cellText += ` $${latex}$ `;
-                                            }
-                                        } else if (cpChild.localName === 'oMath') {
-                                            let latex = convertOmmlToLatex(cpChild);
-                                            if (latex) cellText += ` $${latex}$ `;
-                                        }
+                                    let cpText = parseParagraphContent(cp);
+                                    if (cpText.trim() !== "") {
+                                        cellHtml += `<div style="margin-bottom: 4px;">${cpText}</div>`;
                                     }
-                                    cellText += `<br>`;
                                 }
-                                tableHtml += `<td style="border: 1px solid #cbd5e1; padding: 10px; text-align: right;">${cellText}</td>`;
+                                tableHtml += `<td style="border: 1px solid #cbd5e1; padding: 10px; text-align: right; vertical-align: middle;">${cellHtml}</td>`;
                             }
                             tableHtml += `</tr>`;
                         }
@@ -710,17 +684,16 @@
                     }
                 }
 
-                let wrappedHtml = `<div dir="rtl" style="text-align: right; line-height: 1.8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${finalHtml}</div>`;
+                let wrappedHtml = `<div dir="rtl" style="text-align: right; direction: rtl; line-height: 1.8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${finalHtml}</div>`;
 
-                // تعبئة النتيجة في محرر النصوص والقيام بالمعاينة الفورية
                 document.getElementById('new-lesson-content').value = wrappedHtml;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
                 
-                alert('تم استيراد ملف Word بنجاح مع الحفاظ على النصوص، الصور، الجداول، والمعادلات الرياضية (كسور، جذور، أسس) في مكانها الأصلي 100%!');
+                alert('تم استيراد ملف Word بنجاح مع عرض الجداول، النصوص، والمعادلات باتجاه RTL وبشكل كامل!');
 
             } catch (err) {
-                alert('حدث خطأ أثناء قراءة ملف Word: ' + err.message);
+                alert('خطأ أثناء قراءة ملف Word: ' + err.message);
             }
         }
         /* ========================================================================== */
