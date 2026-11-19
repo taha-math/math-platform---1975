@@ -47,7 +47,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">إدارة المناهج والدروس بدعم كامل للأسس والمعادلات</p>
+                <p class="text-xs text-slate-500">إدارة المناهج والدروس بدعم كامل للأقواس والأسس والمعادلات</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -505,9 +505,24 @@
             if (window.MathJax) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- محول OMML الشامل للأسس بجميع صيغها (sSup، sup، وغيرها) --- */
+        /* --- محول OMML الشامل للأقواس (d)، الأسس (sup/sSup)، الأدلة السفلية (sub)، والكسور (f) --- */
         function convertOmmlToLatex(ommlNode) {
             try {
+                function getAttr(el, attrName) {
+                    if (!el) return null;
+                    return el.getAttribute("m:" + attrName) || el.getAttribute("w:" + attrName) || el.getAttribute(attrName);
+                }
+
+                function mapBracket(ch, isOpen) {
+                    if (!ch) return isOpen ? "(" : ")";
+                    if (ch === "[" || ch === "]") return ch;
+                    if (ch === "{" || ch === "}") return "\\" + ch;
+                    if (ch === "|" || ch === "‖") return isOpen ? "\\lvert " : "\\rvert ";
+                    if (ch === "<" || ch === "⟨") return "\\langle ";
+                    if (ch === ">" || ch === "⟩") return "\\rangle ";
+                    return ch;
+                }
+
                 function extractText(el) {
                     if (!el) return "";
                     let text = "";
@@ -531,12 +546,39 @@
                         if (name === 'r' || name === 't') {
                             latex += child.textContent;
                         } 
-                        else if (name === 'f') {
+                        else if (name === 'd') { // الأقواس المحيطة Delimiter
+                            let dPr = child.getElementsByTagNameNS("*", "dPr")[0];
+                            let begNode = dPr ? dPr.getElementsByTagNameNS("*", "begChr")[0] : null;
+                            let endNode = dPr ? dPr.getElementsByTagNameNS("*", "endChr")[0] : null;
+                            let sepNode = dPr ? dPr.getElementsByTagNameNS("*", "sepChr")[0] : null;
+
+                            let begRaw = begNode ? getAttr(begNode, "val") : "(";
+                            let endRaw = endNode ? getAttr(endNode, "val") : ")";
+                            let sepRaw = sepNode ? getAttr(sepNode, "val") : ",";
+
+                            // إذا كان begRaw فارغاً صراحة في Word فهذا يعني بدون قوس بداية
+                            if (begNode && begRaw === "") begRaw = "";
+                            else if (begRaw === null || begRaw === undefined) begRaw = "(";
+
+                            if (endNode && endRaw === "") endRaw = "";
+                            else if (endRaw === null || endRaw === undefined) endRaw = ")";
+
+                            let leftLatex = begRaw === "" ? "." : mapBracket(begRaw, true);
+                            let rightLatex = endRaw === "" ? "." : mapBracket(endRaw, false);
+
+                            let eNodes = child.getElementsByTagNameNS("*", "e");
+                            let parts = [];
+                            for (let en of eNodes) {
+                                parts.push(parse(en));
+                            }
+                            latex += `\\left${leftLatex} ${parts.join(` ${sepRaw || ','} `)} \\right${rightLatex}`;
+                        }
+                        else if (name === 'f') { // كسر
                             let num = parse(child.getElementsByTagNameNS("*", "num")[0]);
                             let den = parse(child.getElementsByTagNameNS("*", "den")[0]);
                             latex += `\\frac{${num}}{${den}}`;
                         } 
-                        else if (name === 'rad') {
+                        else if (name === 'rad') { // جذر
                             let deg = child.getElementsByTagNameNS("*", "deg")[0];
                             let e = child.getElementsByTagNameNS("*", "e")[0];
                             let degText = deg ? parse(deg) : "";
@@ -547,31 +589,28 @@
                                 latex += `\\sqrt{${eText}}`;
                             }
                         } 
-                        else if (name === 'sup' || name === 'sSup') {
+                        else if (name === 'sup' || name === 'sSup') { // أسس علوية
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let supNodes = child.getElementsByTagNameNS("*", "sup");
-                            
-                            let baseText = "";
-                            if (eNodes.length > 0) baseText = parse(eNodes[0]);
-                            
+                            let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
                             let supText = "";
                             if (supNodes.length > 0) {
-                                // استخراج نص الأس الداخلي (مثل 2، 3، n، -1)
-                                supText = extractText(supNodes[0]);
-                                if (!supText) supText = parse(supNodes[0]);
+                                supText = extractText(supNodes[0]) || parse(supNodes[0]);
                             }
-
-                            // إذا لم يتوفر عبر الوسوم المباشرة، فحص العناصر الفرعية المباشرة
                             if (!baseText && child.childNodes[0]) baseText = parse(child.childNodes[0]);
                             if (!supText && child.childNodes[1]) supText = extractText(child.childNodes[1]) || parse(child.childNodes[1]);
-
                             latex += `{${baseText || ''}}^{${supText || ''}}`;
                         } 
-                        else if (name === 'sub') {
+                        else if (name === 'sub' || name === 'sSub') { // أدلة سفلية (مثل t_1 و t_2)
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let subNodes = child.getElementsByTagNameNS("*", "sub");
                             let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
-                            let subText = subNodes.length > 0 ? extractText(subNodes[0]) || parse(subNodes[0]) : "";
+                            let subText = "";
+                            if (subNodes.length > 0) {
+                                subText = extractText(subNodes[0]) || parse(subNodes[0]);
+                            }
+                            if (!baseText && child.childNodes[0]) baseText = parse(child.childNodes[0]);
+                            if (!subText && child.childNodes[1]) subText = extractText(child.childNodes[1]) || parse(child.childNodes[1]);
                             latex += `{${baseText || ''}}_{${subText || ''}}`;
                         }
                         else {
@@ -581,7 +620,10 @@
                     return latex;
                 }
                 let res = parse(ommlNode);
-                return res.replace(/times/g, '\\times').replace(/div/g, '\\div');
+                return res
+                    .replace(/−/g, '-')
+                    .replace(/times/g, '\\times')
+                    .replace(/div/g, '\\div');
             } catch (e) {
                 return null;
             }
@@ -665,6 +707,14 @@
                 let bodyNode = xmlDoc.getElementsByTagNameNS("*", "body")[0];
                 let finalHtml = "";
 
+                function renderMathElement(mNode) {
+                    let latex = convertOmmlToLatex(mNode);
+                    if (latex && latex.trim().length > 0) {
+                        return ` $${latex}$ `;
+                    }
+                    return ` <img src="${createSvgFallback(mNode.textContent || 'معادلة')}" style="display:inline-block; vertical-align:middle;" /> `;
+                }
+
                 function parseParagraphContent(paragraphNode) {
                     let pContent = "";
                     for (let pChild of paragraphNode.childNodes) {
@@ -672,6 +722,7 @@
                             let rPr = pChild.getElementsByTagNameNS("*", "rPr")[0];
                             let textColorStyle = "";
                             let isSuperscript = false;
+                            let isSubscript = false;
 
                             if (rPr) {
                                 let colorNode = rPr.getElementsByTagNameNS("*", "color")[0];
@@ -683,39 +734,43 @@
                                 if (vertAlign) {
                                     let vVal = vertAlign.getAttribute("w:val") || vertAlign.getAttribute("val");
                                     if (vVal === "superscript") isSuperscript = true;
+                                    else if (vVal === "subscript") isSubscript = true;
                                 }
                             }
-
                             let rText = "";
                             for (let t of pChild.getElementsByTagNameNS("*", "t")) {
                                 if (t.textContent) rText += t.textContent;
                             }
-
                             if (rText) {
-                                if (isSuperscript) {
-                                    // تحويل النص المرفوع كـ Superscript في ملف Word إلى أس واضح
-                                    pContent += `<sup>${rText}</sup>`;
-                                } else if (textColorStyle) {
-                                    pContent += `<span style="${textColorStyle}">${rText}</span>`;
-                                } else {
-                                    pContent += rText;
-                                }
+                                if (isSuperscript) pContent += `<sup>${rText}</sup>`;
+                                else if (isSubscript) pContent += `<sub>${rText}</sub>`;
+                                else if (textColorStyle) pContent += `<span style="${textColorStyle}">${rText}</span>`;
+                                else pContent += rText;
                             }
-
                             for (let blip of pChild.getElementsByTagNameNS("*", "blip")) {
                                 let embedId = blip.getAttribute("r:embed") || blip.getAttribute("embed");
                                 if (embedId && relsMap[embedId] && imagesBase64[relsMap[embedId]]) {
                                     pContent += ` <img src="${imagesBase64[relsMap[embedId]]}" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" /> `;
                                 }
                             }
-
                             for (let m of pChild.getElementsByTagNameNS("*", "oMath")) {
-                                let latex = convertOmmlToLatex(m);
-                                pContent += latex ? ` $${latex}$ ` : ` <img src="${createSvgFallback(m.textContent || 'معادلة')}" style="display:inline-block; vertical-align:middle;" /> `;
+                                pContent += renderMathElement(m);
                             }
                         } else if (pChild.localName === 'oMath') {
-                            let latex = convertOmmlToLatex(pChild);
-                            pContent += latex ? ` $${latex}$ ` : ` <img src="${createSvgFallback(pChild.textContent || 'معادلة')}" style="display:inline-block; vertical-align:middle;" /> `;
+                            pContent += renderMathElement(pChild);
+                        } else if (pChild.localName === 'oMathPara') {
+                            let innerMaths = pChild.getElementsByTagNameNS("*", "oMath");
+                            for (let im of innerMaths) {
+                                pContent += renderMathElement(im);
+                            }
+                        } else if (pChild.localName === 'AlternateContent' || pChild.localName === 'txbxContent') {
+                            let nestedParas = pChild.getElementsByTagNameNS("*", "p");
+                            for (let np of nestedParas) {
+                                let npHtml = parseParagraphContent(np);
+                                if (npHtml.trim() !== "") {
+                                    pContent += `<div dir="rtl" style="margin: 6px 0; text-align: right; direction: rtl;">${npHtml}</div>`;
+                                }
+                            }
                         }
                     }
                     return pContent;
@@ -725,6 +780,21 @@
                     if (child.localName === 'p') {
                         let pContent = parseParagraphContent(child);
                         finalHtml += pContent.trim() !== "" ? `<p dir="rtl" style="margin-bottom: 12px; text-align: right; direction: rtl;">${pContent}</p>` : `<br>`;
+                    } else if (child.localName === 'oMathPara') {
+                        let innerMaths = child.getElementsByTagNameNS("*", "oMath");
+                        let mLine = "";
+                        for (let im of innerMaths) mLine += renderMathElement(im);
+                        if (mLine.trim() !== "") {
+                            finalHtml += `<p dir="rtl" style="margin-bottom: 12px; text-align: right; direction: rtl;">${mLine}</p>`;
+                        }
+                    } else if (child.localName === 'AlternateContent') {
+                        let innerParas = child.getElementsByTagNameNS("*", "p");
+                        for (let ip of innerParas) {
+                            let ipContent = parseParagraphContent(ip);
+                            if (ipContent.trim() !== "") {
+                                finalHtml += `<p dir="rtl" style="margin-bottom: 12px; text-align: right; direction: rtl;">${ipContent}</p>`;
+                            }
+                        }
                     } else if (child.localName === 'tbl') {
                         let tableHtml = `<table dir="rtl" style="width:100%; border-collapse: collapse; margin: 15px 0; border: 1px solid #cbd5e1; direction: rtl; text-align: right;">`;
                         for (let tr of child.getElementsByTagNameNS("*", "tr")) {
@@ -747,7 +817,7 @@
                 document.getElementById('new-lesson-content').value = `<div dir="rtl" style="text-align: right; direction: rtl; line-height: 1.8;">${finalHtml}</div>`;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
-                alert('تم استيراد ملف Word بنجاح وتمت معالجة الأسس العلوية والرموز!');
+                alert('تم استيراد ملف Word بنجاح مع دعم الأقواس والأدلة السفلية والأسس والصور!');
             } catch (err) {
                 alert('خطأ في قراءة ملف Word: ' + err.message);
             }
