@@ -47,7 +47,7 @@
             <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
             <div>
                 <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">إدارة المناهج والدروس بدعم كامل للأقواس والأسس والمعادلات</p>
+                <p class="text-xs text-slate-500">إدارة المناهج والدروس والتمارين بدعم كامل للرياضيات والرسوم</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -111,7 +111,7 @@
                             <label class="block text-sm font-medium">محتوى الدرس (يمكنك الضغط هنا ولصق لقطة الشاشة مباشرة Ctrl + V)</label>
                             <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
                         </div>
-                        <textarea id="new-lesson-content" rows="10" placeholder="اكتب الشرح أو اضغط هنا والصق لقطة الشاشة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl" onpaste="handleDirectPaste(event)"></textarea>
+                        <textarea id="new-lesson-content" rows="10" placeholder="اكتب الشرح أو اضغط هنا والصق لقطة الشاشة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl" onpaste="handleDirectPaste(event, 'new-lesson-content')"></textarea>
                     </div>
 
                     <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
@@ -161,23 +161,26 @@
         </div>
     </div>
 
-    <!-- Modal: Add Exercise -->
-    <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" dir="rtl">
-        <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
-            <h3 class="text-lg font-bold text-emerald-600">إضافة تمرين تفاعلي للدرس</h3>
+    <!-- Modal: Add Exercise (مطور لدعم النصوص والرسوم والأقواس والأسس والجذور والكسور ولصق الصور) -->
+    <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-4 my-8">
+            <div class="flex justify-between items-center border-b pb-3 border-slate-100 dark:border-slate-700">
+                <h3 class="text-lg font-bold text-emerald-600">إضافة تمرين تفاعلي للدرس</h3>
+                <button type="button" onclick="previewExerciseContent()" class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة التمرين</button>
+            </div>
             <input type="hidden" id="ex-grade-id">
             <input type="hidden" id="ex-book-id">
             <input type="hidden" id="ex-unit-id">
             <input type="hidden" id="ex-lesson-id">
             <div>
-                <label class="block text-sm font-medium mb-1">نص السؤال</label>
-                <input type="text" id="ex-question" placeholder="السؤال" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none">
+                <label class="block text-sm font-medium mb-1">نص السؤال (يدعم الكسور $\frac{a}{b}$، الجذور $\sqrt{...}$، الأسس $x^2$، الأقواس $\left(...\right)$، ولصق الصور Ctrl+V)</label>
+                <textarea id="ex-question" rows="3" placeholder="اكتب نص السؤال أو الصق رسمة/معادلة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-question')"></textarea>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="ex-opt0" placeholder="الخيار الأول" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
-                <input type="text" id="ex-opt1" placeholder="الخيار الثاني" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
-                <input type="text" id="ex-opt2" placeholder="الخيار الثالث" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
-                <input type="text" id="ex-opt3" placeholder="الخيار الرابع" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <textarea id="ex-opt0" rows="2" placeholder="الخيار الأول (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt0')"></textarea>
+                <textarea id="ex-opt1" rows="2" placeholder="الخيار الثاني (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt1')"></textarea>
+                <textarea id="ex-opt2" rows="2" placeholder="الخيار الثالث (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt2')"></textarea>
+                <textarea id="ex-opt3" rows="2" placeholder="الخيار الرابع (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt3')"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">الإجابة الصحيحة</label>
@@ -187,6 +190,10 @@
                     <option value="2">الخيار الثالث</option>
                     <option value="3">الخيار الرابع</option>
                 </select>
+            </div>
+            <div class="p-3 bg-emerald-50/50 dark:bg-slate-700/30 rounded-2xl border border-emerald-100 dark:border-slate-700 space-y-2">
+                <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400">معاينة السؤال والخيارات:</span>
+                <div id="live-exercise-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm space-y-2" dir="rtl" style="text-align: right; direction: rtl;">اضغط "معاينة التمرين" لرؤية المعادلات والرسوم...</div>
             </div>
             <div class="flex justify-end gap-3 pt-2">
                 <button onclick="closeExerciseModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-700 text-sm">إلغاء</button>
@@ -332,7 +339,7 @@
             });
         }
 
-        function handleDirectPaste(e) {
+        function handleDirectPaste(e, targetId = 'new-lesson-content') {
             let items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let item of items) {
                 if (item.type.indexOf("image") === 0) {
@@ -343,12 +350,13 @@
                         let base64Img = event.target.result;
                         let imgTag = `\n<img src="${base64Img}" alt="Screenshot" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" />\n`;
                         
-                        let textarea = document.getElementById('new-lesson-content');
+                        let textarea = document.getElementById(targetId);
                         let startPos = textarea.selectionStart;
                         let endPos = textarea.selectionEnd;
                         textarea.value = textarea.value.substring(0, startPos) + imgTag + textarea.value.substring(endPos, textarea.value.length);
-                        previewMathContent();
-                        alert('تم لصق لقطة الشاشة بنجاح!');
+                        if (targetId === 'new-lesson-content') previewMathContent();
+                        else previewExerciseContent();
+                        alert('تم لصق الصورة/الرسمة بنجاح!');
                     };
                     reader.readAsDataURL(blob);
                 }
@@ -455,9 +463,33 @@
             document.getElementById('ex-book-id').value = bookId;
             document.getElementById('ex-unit-id').value = unitId;
             document.getElementById('ex-lesson-id').value = lessonId;
+            document.getElementById('live-exercise-preview').innerHTML = 'اضغط "معاينة التمرين" لرؤية المعادلات والرسوم...';
             document.getElementById('exercise-modal').classList.remove('hidden');
         }
         function closeExerciseModal() { document.getElementById('exercise-modal').classList.add('hidden'); }
+
+        function previewExerciseContent() {
+            let q = document.getElementById('ex-question').value;
+            let opts = [
+                document.getElementById('ex-opt0').value,
+                document.getElementById('ex-opt1').value,
+                document.getElementById('ex-opt2').value,
+                document.getElementById('ex-opt3').value
+            ].filter(o => o.trim() !== '');
+
+            let html = `<div dir="rtl" style="text-align: right; direction: rtl;"><strong>السؤال:</strong> ${q}</div>`;
+            if (opts.length > 0) {
+                html += `<ul class="list-disc pr-5 space-y-1">`;
+                opts.forEach((o, i) => {
+                    html += `<li dir="rtl" style="text-align: right; direction: rtl;">${o}</li>`;
+                });
+                html += `</ul>`;
+            }
+
+            let preview = document.getElementById('live-exercise-preview');
+            preview.innerHTML = html;
+            if (window.MathJax) { MathJax.typesetPromise([preview]); }
+        }
         
         function saveLessonExercise() {
             let gId = document.getElementById('ex-grade-id').value;
@@ -546,7 +578,7 @@
                         if (name === 'r' || name === 't') {
                             latex += child.textContent;
                         } 
-                        else if (name === 'd') { // الأقواس المحيطة Delimiter
+                        else if (name === 'd') {
                             let dPr = child.getElementsByTagNameNS("*", "dPr")[0];
                             let begNode = dPr ? dPr.getElementsByTagNameNS("*", "begChr")[0] : null;
                             let endNode = dPr ? dPr.getElementsByTagNameNS("*", "endChr")[0] : null;
@@ -556,7 +588,6 @@
                             let endRaw = endNode ? getAttr(endNode, "val") : ")";
                             let sepRaw = sepNode ? getAttr(sepNode, "val") : ",";
 
-                            // إذا كان begRaw فارغاً صراحة في Word فهذا يعني بدون قوس بداية
                             if (begNode && begRaw === "") begRaw = "";
                             else if (begRaw === null || begRaw === undefined) begRaw = "(";
 
@@ -573,12 +604,12 @@
                             }
                             latex += `\\left${leftLatex} ${parts.join(` ${sepRaw || ','} `)} \\right${rightLatex}`;
                         }
-                        else if (name === 'f') { // كسر
+                        else if (name === 'f') {
                             let num = parse(child.getElementsByTagNameNS("*", "num")[0]);
                             let den = parse(child.getElementsByTagNameNS("*", "den")[0]);
                             latex += `\\frac{${num}}{${den}}`;
                         } 
-                        else if (name === 'rad') { // جذر
+                        else if (name === 'rad') {
                             let deg = child.getElementsByTagNameNS("*", "deg")[0];
                             let e = child.getElementsByTagNameNS("*", "e")[0];
                             let degText = deg ? parse(deg) : "";
@@ -589,7 +620,7 @@
                                 latex += `\\sqrt{${eText}}`;
                             }
                         } 
-                        else if (name === 'sup' || name === 'sSup') { // أسس علوية
+                        else if (name === 'sup' || name === 'sSup') {
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let supNodes = child.getElementsByTagNameNS("*", "sup");
                             let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
@@ -601,7 +632,7 @@
                             if (!supText && child.childNodes[1]) supText = extractText(child.childNodes[1]) || parse(child.childNodes[1]);
                             latex += `{${baseText || ''}}^{${supText || ''}}`;
                         } 
-                        else if (name === 'sub' || name === 'sSub') { // أدلة سفلية (مثل t_1 و t_2)
+                        else if (name === 'sub' || name === 'sSub') {
                             let eNodes = child.getElementsByTagNameNS("*", "e");
                             let subNodes = child.getElementsByTagNameNS("*", "sub");
                             let baseText = eNodes.length > 0 ? parse(eNodes[0]) : "";
