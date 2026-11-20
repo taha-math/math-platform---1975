@@ -32,6 +32,10 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         body, textarea, input, select, table, td, th, div {
             direction: rtl !important;
@@ -41,89 +45,122 @@
 </head>
 <body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col" dir="rtl">
 
-    <!-- Header -->
-    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-20 flex items-center px-8 justify-between" dir="rtl">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
-            <div>
-                <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى</h1>
-                <p class="text-xs text-slate-500">إدارة المناهج والدروس والتمارين بدعم كامل للرياضيات والرسوم</p>
+    <!-- شاشة التحقق / دخول المدير (تظهر قبل السماح بعرض لوحة التحكم) -->
+    <div id="admin-guard-screen" class="fixed inset-0 bg-slate-900/95 z-50 flex items-center justify-center p-4" dir="rtl">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-8 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center text-2xl mx-auto">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2 class="text-xl font-bold text-center">منطقة محمية - دخول المدير فقط</h2>
+                <p id="guard-status-msg" class="text-xs text-slate-500 text-center">جاري التحقق من الصلاحيات...</p>
             </div>
-        </div>
-        <div class="flex items-center gap-4">
-            <a href="index.html" target="_blank" class="bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-200 transition"><i class="fa-solid fa-globe ml-1"></i> استعراض المنصة</a>
-            <button onclick="resetPlatformData()" class="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-rotate-right ml-1"></i> تصفير البيانات</button>
-            <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition"><i class="fa-solid fa-download ml-1"></i> تصدير Backup</button>
-        </div>
-    </header>
-
-    <!-- Main Admin Body -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8" dir="rtl">
-        
-        <!-- Sidebar Controls -->
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6 h-fit">
-            <h3 class="font-bold text-lg border-b pb-3 border-slate-100 dark:border-slate-700">شجرة المحتوى الإدارية</h3>
-            <div class="space-y-4">
+            <form id="guard-login-form" onsubmit="handleGuardLogin(event)" class="hidden space-y-4">
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">اختر الصف</label>
-                    <select id="admin-grade-select" onchange="renderAdminBooks()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
+                    <label class="block text-sm font-medium mb-1">البريد الإلكتروني للمدير</label>
+                    <input type="email" id="guard-email" required class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">اختر الكتاب</label>
-                    <select id="admin-book-select" onchange="renderAdminUnits()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
+                    <label class="block text-sm font-medium mb-1">كلمة المرور</label>
+                    <input type="password" id="guard-password" required class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-            </div>
-            <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
-                <button onclick="openAddGradeModal()" class="w-full bg-blue-50 text-blue-600 font-medium py-2 rounded-xl text-xs hover:bg-blue-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة صف جديد</button>
-                <button onclick="openAddBookModal()" class="w-full bg-emerald-50 text-emerald-600 font-medium py-2 rounded-xl text-xs hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة كتاب جديد</button>
-                <button onclick="openAddUnitModal()" class="w-full bg-indigo-50 text-indigo-600 font-medium py-2 rounded-xl text-xs hover:bg-indigo-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة وحدة جديدة</button>
-            </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition">تسجيل الدخول</button>
+                <a href="index.html" class="block text-center text-xs text-slate-500 hover:text-indigo-600 pt-2">العودة إلى الصفحة الرئيسية</a>
+            </form>
         </div>
+    </div>
 
-        <!-- Content Management Panel -->
-        <div class="lg:col-span-3 space-y-6">
-            <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h2 class="text-xl font-bold text-indigo-600">إدارة الوحدات والدروس والتمارين</h2>
-                <div id="admin-units-container" class="space-y-6"></div>
-            </div>
-
-            <!-- Advanced File Import & Editor Panel -->
-            <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-arrow-up ml-2 text-blue-600"></i> محرر الدروس ورفع الملفات (أو اللصق المباشر)</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
-                    <div>
-                        <label class="block text-sm font-semibold mb-1">اختر ملف الدرس (Word .docx أو PDF .pdf)</label>
-                        <input type="file" accept=".docx,.pdf" onchange="handleFileDropUpload(event)" class="text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-1">اختر الوحدة المستهدفة لإضافة الدرس</label>
-                        <select id="target-unit-select" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></select>
-                    </div>
+    <!-- واجهة لوحة التحكم (مخفية حتى يتم التحقق من هوية المدير) -->
+    <div id="admin-panel-wrapper" class="hidden flex-grow flex flex-col">
+        <!-- Header -->
+        <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 h-20 flex items-center px-8 justify-between" dir="rtl">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold">ط</div>
+                <div>
+                    <h1 class="font-bold text-lg">لوحة التحكم وإدارة المحتوى (سحابي)</h1>
+                    <p class="text-xs text-slate-500">المحتوى محفوظ في Firebase Firestore ويظهر لجميع الطلاب فوراً</p>
                 </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="index.html" class="bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-200 transition"><i class="fa-solid fa-globe ml-1"></i> استعراض المنصة</a>
+                <button onclick="seedInitialGradesIfEmpty()" class="bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition"><i class="fa-solid fa-wand-magic-sparkles ml-1"></i> تهيئة الصفوف الافتراضية</button>
+                <button onclick="exportJSON()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition"><i class="fa-solid fa-download ml-1"></i> تصدير JSON</button>
+                <label class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-medium cursor-pointer transition">
+                    <i class="fa-solid fa-upload ml-1"></i> استيراد JSON
+                    <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
+                </label>
+                <button onclick="signOutAdmin()" class="bg-rose-500 hover:bg-rose-600 text-white px-3.5 py-2 rounded-xl text-xs font-medium transition"><i class="fa-solid fa-right-from-bracket ml-1"></i> خروج</button>
+            </div>
+        </header>
 
+        <!-- Main Admin Body -->
+        <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-4 gap-8" dir="rtl">
+            
+            <!-- Sidebar Controls -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6 h-fit">
+                <h3 class="font-bold text-lg border-b pb-3 border-slate-100 dark:border-slate-700">شجرة المحتوى الإدارية</h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
-                        <input type="text" id="new-lesson-title" placeholder="مثال: عنوان الدرس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">اختر الصف</label>
+                        <select id="admin-grade-select" onchange="renderAdminBooks()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
                     </div>
                     <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-medium">محتوى الدرس (يمكنك الضغط هنا ولصق لقطة الشاشة مباشرة Ctrl + V)</label>
-                            <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
-                        </div>
-                        <textarea id="new-lesson-content" rows="10" placeholder="اكتب الشرح أو اضغط هنا والصق لقطة الشاشة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl" onpaste="handleDirectPaste(event, 'new-lesson-content')"></textarea>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">اختر الكتاب</label>
+                        <select id="admin-book-select" onchange="renderAdminUnits()" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:ring-2 focus:ring-indigo-500 outline-none"></select>
                     </div>
-
-                    <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
-                        <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
-                        <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right; direction: rtl;">اكتب محتوى بالأعلى أو الصق صورة لمعاينتها...</div>
-                    </div>
-
-                    <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس وإضافته للمنصة</button>
+                </div>
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                    <button onclick="openAddGradeModal()" class="w-full bg-blue-50 text-blue-600 font-medium py-2 rounded-xl text-xs hover:bg-blue-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة صف جديد</button>
+                    <button onclick="openAddBookModal()" class="w-full bg-emerald-50 text-emerald-600 font-medium py-2 rounded-xl text-xs hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة كتاب جديد</button>
+                    <button onclick="openAddUnitModal()" class="w-full bg-indigo-50 text-indigo-600 font-medium py-2 rounded-xl text-xs hover:bg-indigo-100 transition"><i class="fa-solid fa-plus ml-1"></i> إضافة وحدة جديدة</button>
                 </div>
             </div>
-        </div>
-    </main>
+
+            <!-- Content Management Panel -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+                    <h2 class="text-xl font-bold text-indigo-600">إدارة الوحدات والدروس والتمارين</h2>
+                    <div id="admin-units-container" class="space-y-6"></div>
+                </div>
+
+                <!-- Advanced File Import & Editor Panel -->
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+                    <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-file-arrow-up ml-2 text-blue-600"></i> محرر الدروس ورفع الملفات (أو اللصق المباشر)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">اختر ملف الدرس (Word .docx أو PDF .pdf)</label>
+                            <input type="file" accept=".docx,.pdf" onchange="handleFileDropUpload(event)" class="text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">اختر الوحدة المستهدفة لإضافة الدرس</label>
+                            <select id="target-unit-select" class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">عنوان الدرس</label>
+                            <input type="text" id="new-lesson-title" placeholder="مثال: عنوان الدرس" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-sm font-medium">محتوى الدرس (يمكنك الضغط هنا ولصق لقطة الشاشة مباشرة Ctrl + V)</label>
+                                <button type="button" onclick="previewMathContent()" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg font-semibold hover:bg-indigo-100 transition"><i class="fa-solid fa-eye ml-1"></i> معاينة فورية</button>
+                            </div>
+                            <textarea id="new-lesson-content" rows="10" placeholder="اكتب الشرح أو اضغط هنا والصق لقطة الشاشة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right" dir="rtl" onpaste="handleDirectPaste(event, 'new-lesson-content')"></textarea>
+                        </div>
+
+                        <div class="p-4 bg-indigo-50/50 dark:bg-slate-700/30 rounded-2xl border border-indigo-100 dark:border-slate-700 space-y-2">
+                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">معاينة مباشرة:</span>
+                            <div id="live-math-preview" class="p-3 bg-white dark:bg-slate-800 rounded-xl min-h-[50px] text-sm" dir="rtl" style="text-align: right; direction: rtl;">اكتب محتوى بالأعلى أو الصق صورة لمعاينتها...</div>
+                        </div>
+
+                        <button onclick="saveNewLesson()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-sm font-medium transition shadow-sm"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ الدرس ونشره للطلاب</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- Modal: Add Grade -->
     <div id="grade-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" dir="rtl">
@@ -161,7 +198,7 @@
         </div>
     </div>
 
-    <!-- Modal: Add Exercise (مطور لدعم النصوص والرسوم والأقواس والأسس والجذور والكسور ولصق الصور) -->
+    <!-- Modal: Add Exercise -->
     <div id="exercise-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto" dir="rtl">
         <div class="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-4 my-8">
             <div class="flex justify-between items-center border-b pb-3 border-slate-100 dark:border-slate-700">
@@ -173,14 +210,14 @@
             <input type="hidden" id="ex-unit-id">
             <input type="hidden" id="ex-lesson-id">
             <div>
-                <label class="block text-sm font-medium mb-1">نص السؤال (يدعم الكسور $\frac{a}{b}$، الجذور $\sqrt{...}$، الأسس $x^2$، الأقواس $\left(...\right)$، ولصق الصور Ctrl+V)</label>
+                <label class="block text-sm font-medium mb-1">نص السؤال</label>
                 <textarea id="ex-question" rows="3" placeholder="اكتب نص السؤال أو الصق رسمة/معادلة (Ctrl + V)..." class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-question')"></textarea>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <textarea id="ex-opt0" rows="2" placeholder="الخيار الأول (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt0')"></textarea>
-                <textarea id="ex-opt1" rows="2" placeholder="الخيار الثاني (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt1')"></textarea>
-                <textarea id="ex-opt2" rows="2" placeholder="الخيار الثالث (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt2')"></textarea>
-                <textarea id="ex-opt3" rows="2" placeholder="الخيار الرابع (يدعم المعادلات والصور Ctrl+V)" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt3')"></textarea>
+                <textarea id="ex-opt0" rows="2" placeholder="الخيار الأول" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt0')"></textarea>
+                <textarea id="ex-opt1" rows="2" placeholder="الخيار الثاني" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt1')"></textarea>
+                <textarea id="ex-opt2" rows="2" placeholder="الخيار الثالث" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt2')"></textarea>
+                <textarea id="ex-opt3" rows="2" placeholder="الخيار الرابع" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none font-mono" dir="rtl" onpaste="handleDirectPaste(event, 'ex-opt3')"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium mb-1">الإجابة الصحيحة</label>
@@ -202,143 +239,186 @@
         </div>
     </div>
 
-    <!-- Admin Logic Script -->
     <script>
-        const defaultData = {
-            grades: [
-                {
-                    id: 'g7',
-                    name: 'الصف السابع',
-                    books: [
-                        {
-                            id: 'b7_algebra',
-                            name: 'كتاب الجبر',
-                            units: [
-                                {
-                                    id: 'u7_1',
-                                    name: 'الوحدة الأولى',
-                                    lessons: [
-                                        {
-                                            id: 'l7_1_1',
-                                            title: 'درس نموذجي',
-                                            content: `<div dir="rtl" style="text-align: right; direction: rtl;"><h3>محتوى تجريبي</h3></div>`,
-                                            exercises: []
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        { id: 'b7_geometry', name: 'كتاب الهندسة', units: [] }
-                    ]
-                },
-                {
-                    id: 'g8',
-                    name: 'الصف الثامن',
-                    books: [
-                        { id: 'b8_alg', name: 'كتاب الجبر', units: [] },
-                        { id: 'b8_geo', name: 'كتاب الهندسة', units: [] }
-                    ]
-                },
-                {
-                    id: 'g9',
-                    name: 'الصف التاسع',
-                    books: [
-                        { id: 'b9_alg', name: 'كتاب الجبر', units: [] },
-                        { id: 'b9_geo', name: 'كتاب الهندسة', units: [] }
-                    ]
-                }
-            ]
+        // =====================================================================
+        // مكان وضع Firebase Configuration (استبدل القيم ببيانات مشروعك من Firebase)
+        // =====================================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
-        let appData = JSON.parse(localStorage.getItem('taha_math_platform_data'));
-        if (!appData || !appData.grades || !Array.isArray(appData.grades)) {
-            appData = defaultData;
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
-        }
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-        function resetPlatformData() {
-            if (confirm('تصفير البيانات وإعادتها للحالة الافتراضية؟')) {
-                appData = defaultData;
-                localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
-                initAdmin();
-                alert('تمت إعادة التعيين بنجاح!');
-            }
-        }
+        // البريد الإلكتروني المعتمد لحساب المدير فقط
+        const AUTHORIZED_ADMIN_EMAIL = "admin@taha-math.com";
 
-        function initAdmin() {
-            let gradeSelect = document.getElementById('admin-grade-select');
-            gradeSelect.innerHTML = '';
-            appData.grades.forEach(g => {
-                gradeSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
-            });
-            renderAdminBooks();
-        }
+        // حارس الصلاحيات: تحويل أي مستخدم غير مصرح له تلقائياً إلى الصفحة الرئيسية
+        auth.onAuthStateChanged(async user => {
+            const guardScreen = document.getElementById('admin-guard-screen');
+            const guardMsg = document.getElementById('guard-status-msg');
+            const guardForm = document.getElementById('guard-login-form');
+            const panelWrapper = document.getElementById('admin-panel-wrapper');
 
-        function renderAdminBooks() {
-            let gradeId = document.getElementById('admin-grade-select').value;
-            let grade = appData.grades.find(g => g.id === gradeId);
-            let bookSelect = document.getElementById('admin-book-select');
-            bookSelect.innerHTML = '';
-            if (grade && grade.books) {
-                grade.books.forEach(b => {
-                    bookSelect.innerHTML += `<option value="${b.id}">${b.name}</option>`;
-                });
-            }
-            renderAdminUnits();
-        }
-
-        function renderAdminUnits() {
-            let gradeId = document.getElementById('admin-grade-select').value;
-            let bookId = document.getElementById('admin-book-select').value;
-            let grade = appData.grades.find(g => g.id === gradeId);
-            if (!grade) return;
-            let book = grade.books.find(b => b.id === bookId);
-            if (!book) return;
-
-            let targetSelect = document.getElementById('target-unit-select');
-            targetSelect.innerHTML = '';
-            let container = document.getElementById('admin-units-container');
-            container.innerHTML = '';
-
-            if (!book.units || book.units.length === 0) {
-                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب.</p>`;
+            if (!user) {
+                guardMsg.innerText = 'يرجى تسجيل الدخول بحساب المدير للوصول إلى لوحة التحكم.';
+                guardForm.classList.remove('hidden');
+                panelWrapper.classList.add('hidden');
                 return;
             }
 
-            book.units.forEach(unit => {
-                targetSelect.innerHTML += `<option value="${unit.id}">${unit.name}</option>`;
-                let div = document.createElement('div');
-                div.className = 'p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-4';
-                div.innerHTML = `
-                    <div class="flex justify-between items-center" dir="rtl">
-                        <h4 class="font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h4>
-                        <button onclick="deleteUnit('${gradeId}', '${bookId}', '${unit.id}')" class="text-rose-500 text-xs hover:underline"><i class="fa-solid fa-trash ml-1"></i> حذف الوحدة</button>
-                    </div>
-                    <div class="space-y-3 pl-4" dir="rtl">
-                `;
-                if (unit.lessons && unit.lessons.length > 0) {
-                    unit.lessons.forEach(l => {
-                        let exCount = l.exercises ? l.exercises.length : 0;
-                        div.innerHTML += `
+            if (!user.email || user.email.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+                guardMsg.innerText = 'غير مصرح لك بالدخول إلى لوحة التحكم. جاري تحويلك إلى الصفحة الرئيسية...';
+                guardForm.classList.add('hidden');
+                await auth.signOut();
+                setTimeout(() => {
+                    window.location.replace('index.html');
+                }, 1200);
+                return;
+            }
+
+            // تم التحقق بنجاح من هوية المدير
+            guardScreen.classList.add('hidden');
+            panelWrapper.classList.remove('hidden');
+            await loadGradesDropdown();
+        });
+
+        async function handleGuardLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('guard-email').value.trim();
+            const pass = document.getElementById('guard-password').value;
+            try {
+                const cred = await auth.signInWithEmailAndPassword(email, pass);
+                if (cred.user.email.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+                    await auth.signOut();
+                    alert('هذا الحساب غير مصرح له بالدخول إلى لوحة التحكم.');
+                    window.location.replace('index.html');
+                }
+            } catch (err) {
+                alert('بيانات الدخول غير صحيحة.');
+            }
+        }
+
+        async function signOutAdmin() {
+            await auth.signOut();
+            window.location.replace('index.html');
+        }
+
+        // تهيئة الصفوف والكتب الافتراضية في Firestore إذا كانت فارغة
+        async function seedInitialGradesIfEmpty() {
+            const snap = await db.collection('grades').get();
+            if (!snap.empty) {
+                alert('الصفوف موجودة بالفعل في قاعدة البيانات.');
+                return;
+            }
+            const initialGrades = [
+                { id: 'g7', name: 'الصف السابع', order: 1 },
+                { id: 'g8', name: 'الصف الثامن', order: 2 },
+                { id: 'g9', name: 'الصف التاسع', order: 3 }
+            ];
+            for (const g of initialGrades) {
+                const gRef = db.collection('grades').doc(g.id);
+                await gRef.set({ name: g.name, order: g.order });
+                await gRef.collection('books').doc(g.id + '_alg').set({ name: 'كتاب الجبر', order: 1 });
+                await gRef.collection('books').doc(g.id + '_geo').set({ name: 'كتاب الهندسة', order: 2 });
+            }
+            await loadGradesDropdown();
+            alert('تمت تهيئة الصفوف السابع والثامن والتاسع وكتب الجبر والهندسة في Firestore بنجاح!');
+        }
+
+        async function loadGradesDropdown() {
+            const gradeSelect = document.getElementById('admin-grade-select');
+            gradeSelect.innerHTML = '';
+            const snap = await db.collection('grades').orderBy('order', 'asc').get();
+            if (snap.empty) {
+                gradeSelect.innerHTML = `<option value="">لا توجد صفوف - اضغط "تهيئة الصفوف الافتراضية"</option>`;
+                document.getElementById('admin-book-select').innerHTML = '';
+                document.getElementById('admin-units-container').innerHTML = `<p class="text-sm text-slate-500">لا توجد بيانات في Firestore بعد.</p>`;
+                return;
+            }
+            snap.forEach(doc => {
+                gradeSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`;
+            });
+            await renderAdminBooks();
+        }
+
+        async function renderAdminBooks() {
+            const gradeId = document.getElementById('admin-grade-select').value;
+            const bookSelect = document.getElementById('admin-book-select');
+            bookSelect.innerHTML = '';
+            if (!gradeId) return;
+
+            const snap = await db.collection('grades').doc(gradeId).collection('books').orderBy('order', 'asc').get();
+            snap.forEach(doc => {
+                bookSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`;
+            });
+            await renderAdminUnits();
+        }
+
+        async function renderAdminUnits() {
+            const gradeId = document.getElementById('admin-grade-select').value;
+            const bookId = document.getElementById('admin-book-select').value;
+            const targetSelect = document.getElementById('target-unit-select');
+            const container = document.getElementById('admin-units-container');
+            targetSelect.innerHTML = '';
+            container.innerHTML = '';
+
+            if (!gradeId || !bookId) {
+                container.innerHTML = `<p class="text-sm text-slate-500">اختر صفاً وكتاباً أو أضف كتاباً جديداً.</p>`;
+                return;
+            }
+
+            const unitsSnap = await db.collection('grades').doc(gradeId).collection('books').doc(bookId).collection('units').orderBy('order', 'asc').get();
+            if (unitsSnap.empty) {
+                container.innerHTML = `<p class="text-sm text-slate-500">لا توجد وحدات في هذا الكتاب. استخدم زر "إضافة وحدة جديدة".</p>`;
+                return;
+            }
+
+            for (const unitDoc of unitsSnap.docs) {
+                const unit = unitDoc.data();
+                targetSelect.innerHTML += `<option value="${unitDoc.id}">${unit.name}</option>`;
+
+                const lessonsSnap = await unitDoc.ref.collection('lessons').orderBy('order', 'asc').get();
+                let lessonsHtml = '';
+                if (lessonsSnap.empty) {
+                    lessonsHtml = `<p class="text-xs text-slate-400">لا دروس مضافة بعد في هذه الوحدة.</p>`;
+                } else {
+                    lessonsSnap.forEach(lDoc => {
+                        const l = lDoc.data();
+                        const exCount = Array.isArray(l.exercises) ? l.exercises.length : 0;
+                        lessonsHtml += `
                             <div class="p-4 bg-white dark:bg-slate-800 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700" dir="rtl">
                                 <div class="flex justify-between items-center" dir="rtl">
                                     <span class="font-bold text-sm"><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${l.title}</span>
                                     <div class="flex items-center gap-3">
-                                        <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> تمارين (${exCount})</button>
-                                        <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unit.id}', '${l.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
+                                        <button onclick="openExerciseModal('${gradeId}', '${bookId}', '${unitDoc.id}', '${lDoc.id}')" class="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition"><i class="fa-solid fa-plus ml-1"></i> تمارين (${exCount})</button>
+                                        <button onclick="deleteLesson('${gradeId}', '${bookId}', '${unitDoc.id}', '${lDoc.id}')" class="text-rose-500 hover:text-rose-700 text-xs"><i class="fa-solid fa-trash"></i></button>
                                     </div>
                                 </div>
                             </div>
                         `;
                     });
-                } else {
-                    div.innerHTML += `<p class="text-xs text-slate-400">لا دروس مضافة بعد.</p>`;
                 }
-                div.innerHTML += `</div>`;
-                container.appendChild(div);
-            });
+
+                container.innerHTML += `
+                    <div class="p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-4">
+                        <div class="flex justify-between items-center" dir="rtl">
+                            <h4 class="font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h4>
+                            <button onclick="deleteUnit('${gradeId}', '${bookId}', '${unitDoc.id}')" class="text-rose-500 text-xs hover:underline"><i class="fa-solid fa-trash ml-1"></i> حذف الوحدة</button>
+                        </div>
+                        <div class="space-y-3 pl-4" dir="rtl">${lessonsHtml}</div>
+                    </div>
+                `;
+            }
         }
 
+        // لصق الصور المباشر (Ctrl + V)
         function handleDirectPaste(e, targetId = 'new-lesson-content') {
             let items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (let item of items) {
@@ -349,7 +429,6 @@
                     reader.onload = function(event) {
                         let base64Img = event.target.result;
                         let imgTag = `\n<img src="${base64Img}" alt="Screenshot" style="max-width:100%; height:auto; display:inline-block; margin: 10px auto; border-radius: 8px;" />\n`;
-                        
                         let textarea = document.getElementById(targetId);
                         let startPos = textarea.selectionStart;
                         let endPos = textarea.selectionEnd;
@@ -363,99 +442,98 @@
             }
         }
 
+        // إضافة صف جديد في Firestore
         function openAddGradeModal() { document.getElementById('grade-modal').classList.remove('hidden'); }
         function closeAddGradeModal() { document.getElementById('grade-modal').classList.add('hidden'); }
-        function confirmAddGrade() {
-            let name = document.getElementById('grade-name-input').value.trim();
+        async function confirmAddGrade() {
+            const name = document.getElementById('grade-name-input').value.trim();
             if (!name) return alert('أدخل اسم الصف');
-            appData.grades.push({ id: 'g_' + Date.now(), name: name, books: [{ id: 'b_' + Date.now(), name: 'كتاب الجبر', units: [] }] });
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            const gRef = await db.collection('grades').add({ name, order: Date.now() });
+            await gRef.collection('books').add({ name: 'كتاب الجبر', order: 1 });
+            await gRef.collection('books').add({ name: 'كتاب الهندسة', order: 2 });
             closeAddGradeModal();
             document.getElementById('grade-name-input').value = '';
-            initAdmin();
-            alert('تمت إضافة الصف بنجاح!');
+            await loadGradesDropdown();
+            document.getElementById('admin-grade-select').value = gRef.id;
+            await renderAdminBooks();
+            alert('تمت إضافة الصف بنجاح في قاعدة البيانات!');
         }
 
+        // إضافة كتاب جديد في Firestore
         function openAddBookModal() { document.getElementById('book-modal').classList.remove('hidden'); }
         function closeAddBookModal() { document.getElementById('book-modal').classList.add('hidden'); }
-        function confirmAddBook() {
-            let name = document.getElementById('book-name-input').value.trim();
-            if (!name) return alert('أدخل اسم الكتاب');
-            let gradeId = document.getElementById('admin-grade-select').value;
-            let grade = appData.grades.find(g => g.id === gradeId);
-            if (!grade.books) grade.books = [];
-            grade.books.push({ id: 'b_' + Date.now(), name: name, units: [] });
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+        async function confirmAddBook() {
+            const name = document.getElementById('book-name-input').value.trim();
+            const gradeId = document.getElementById('admin-grade-select').value;
+            if (!name || !gradeId) return alert('أدخل اسم الكتاب واختر الصف');
+            const bRef = await db.collection('grades').doc(gradeId).collection('books').add({ name, order: Date.now() });
             closeAddBookModal();
             document.getElementById('book-name-input').value = '';
-            renderAdminBooks();
+            await renderAdminBooks();
+            document.getElementById('admin-book-select').value = bRef.id;
+            await renderAdminUnits();
             alert('تمت إضافة الكتاب بنجاح!');
         }
 
+        // إضافة وحدة جديدة في Firestore
         function openAddUnitModal() { document.getElementById('unit-modal').classList.remove('hidden'); }
         function closeAddUnitModal() { document.getElementById('unit-modal').classList.add('hidden'); }
-        function confirmAddUnit() {
-            let name = document.getElementById('unit-name-input').value.trim();
-            if (!name) return alert('أدخل اسم الوحدة');
-            let gradeId = document.getElementById('admin-grade-select').value;
-            let bookId = document.getElementById('admin-book-select').value;
-            let grade = appData.grades.find(g => g.id === gradeId);
-            let book = grade.books.find(b => b.id === bookId);
-            if (!book.units) book.units = [];
-            book.units.push({ id: 'u_' + Date.now(), name: name, lessons: [] });
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+        async function confirmAddUnit() {
+            const name = document.getElementById('unit-name-input').value.trim();
+            const gradeId = document.getElementById('admin-grade-select').value;
+            const bookId = document.getElementById('admin-book-select').value;
+            if (!name || !gradeId || !bookId) return alert('أدخل اسم الوحدة واختر الصف والكتاب');
+            await db.collection('grades').doc(gradeId).collection('books').doc(bookId).collection('units').add({ name, order: Date.now() });
             closeAddUnitModal();
             document.getElementById('unit-name-input').value = '';
-            renderAdminUnits();
+            await renderAdminUnits();
             alert('تمت إضافة الوحدة بنجاح!');
         }
 
-        function deleteUnit(gradeId, bookId, unitId) {
+        async function deleteUnit(gradeId, bookId, unitId) {
             if (!confirm('حذف هذه الوحدة؟')) return;
-            let book = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId);
-            book.units = book.units.filter(u => u.id !== unitId);
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
-            renderAdminUnits();
+            await db.collection('grades').doc(gradeId).collection('books').doc(bookId).collection('units').doc(unitId).delete();
+            await renderAdminUnits();
         }
 
-        function deleteLesson(gradeId, bookId, unitId, lessonId) {
+        async function deleteLesson(gradeId, bookId, unitId, lessonId) {
             if (!confirm('حذف هذا الدرس؟')) return;
-            let unit = appData.grades.find(g => g.id === gradeId).books.find(b => b.id === bookId).units.find(u => u.id === unitId);
-            unit.lessons = unit.lessons.filter(l => l.id !== lessonId);
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
-            renderAdminUnits();
+            await db.collection('grades').doc(gradeId).collection('books').doc(bookId).collection('units').doc(unitId).collection('lessons').doc(lessonId).delete();
+            await renderAdminUnits();
         }
 
-        function saveNewLesson() {
-            let unitId = document.getElementById('target-unit-select').value;
-            let title = document.getElementById('new-lesson-title').value.trim();
-            let content = document.getElementById('new-lesson-content').value.trim();
+        // حفظ الدرس في Firestore ليظهر لجميع الطلاب
+        async function saveNewLesson() {
+            const gradeId = document.getElementById('admin-grade-select').value;
+            const bookId = document.getElementById('admin-book-select').value;
+            const unitId = document.getElementById('target-unit-select').value;
+            const title = document.getElementById('new-lesson-title').value.trim();
+            const content = document.getElementById('new-lesson-content').value.trim();
 
-            if (!unitId || !title || !content) {
-                alert('الرجاء التأكد من تعبئة العنوان والمحتوى واختيار الوحدة.');
+            if (!gradeId || !bookId || !unitId || !title || !content) {
+                alert('الرجاء التأكد من اختيار الصف والكتاب والوحدة وتعبئة العنوان والمحتوى.');
                 return;
             }
 
-            let gradeId = document.getElementById('admin-grade-select').value;
-            let bookId = document.getElementById('admin-book-select').value;
-            let grade = appData.grades.find(g => g.id === gradeId);
-            let book = grade.books.find(b => b.id === bookId);
-            let unit = book.units.find(u => u.id === unitId);
+            try {
+                await db.collection('grades').doc(gradeId)
+                    .collection('books').doc(bookId)
+                    .collection('units').doc(unitId)
+                    .collection('lessons').add({
+                        title,
+                        content: `<div dir="rtl" style="text-align: right; direction: rtl;">${content}</div>`,
+                        exercises: [],
+                        order: Date.now()
+                    });
 
-            if (!unit.lessons) unit.lessons = [];
-            unit.lessons.push({
-                id: 'l_' + Date.now(),
-                title: title,
-                content: `<div dir="rtl" style="text-align: right; direction: rtl;">${content}</div>`,
-                exercises: []
-            });
-
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
-            document.getElementById('new-lesson-title').value = '';
-            document.getElementById('new-lesson-content').value = '';
-            document.getElementById('live-math-preview').innerHTML = 'تم الحفظ!';
-            renderAdminUnits();
-            alert('تم حفظ الدرس بنجاح!');
+                document.getElementById('new-lesson-title').value = '';
+                document.getElementById('new-lesson-content').value = '';
+                document.getElementById('live-math-preview').innerHTML = 'تم النشر في قاعدة البيانات!';
+                await renderAdminUnits();
+                alert('تم حفظ الدرس ونشره بنجاح لجميع المستخدمين!');
+            } catch (err) {
+                alert('حدث خطأ أثناء الحفظ: تأكد من حجم الصور المرفقة أو صلاحيات Firebase.');
+            }
         }
 
         function openExerciseModal(gradeId, bookId, unitId, lessonId) {
@@ -480,7 +558,7 @@
             let html = `<div dir="rtl" style="text-align: right; direction: rtl;"><strong>السؤال:</strong> ${q}</div>`;
             if (opts.length > 0) {
                 html += `<ul class="list-disc pr-5 space-y-1">`;
-                opts.forEach((o, i) => {
+                opts.forEach(o => {
                     html += `<li dir="rtl" style="text-align: right; direction: rtl;">${o}</li>`;
                 });
                 html += `</ul>`;
@@ -488,56 +566,56 @@
 
             let preview = document.getElementById('live-exercise-preview');
             preview.innerHTML = html;
-            if (window.MathJax) { MathJax.typesetPromise([preview]); }
+            if (window.MathJax && window.MathJax.typesetPromise) { MathJax.typesetPromise([preview]); }
         }
-        
-        function saveLessonExercise() {
-            let gId = document.getElementById('ex-grade-id').value;
-            let bId = document.getElementById('ex-book-id').value;
-            let uId = document.getElementById('ex-unit-id').value;
-            let lId = document.getElementById('ex-lesson-id').value;
 
-            let question = document.getElementById('ex-question').value.trim();
-            let opt0 = document.getElementById('ex-opt0').value.trim();
-            let opt1 = document.getElementById('ex-opt1').value.trim();
-            let opt2 = document.getElementById('ex-opt2').value.trim();
-            let opt3 = document.getElementById('ex-opt3').value.trim();
-            let correct = parseInt(document.getElementById('ex-correct').value);
+        async function saveLessonExercise() {
+            const gId = document.getElementById('ex-grade-id').value;
+            const bId = document.getElementById('ex-book-id').value;
+            const uId = document.getElementById('ex-unit-id').value;
+            const lId = document.getElementById('ex-lesson-id').value;
+
+            const question = document.getElementById('ex-question').value.trim();
+            const opt0 = document.getElementById('ex-opt0').value.trim();
+            const opt1 = document.getElementById('ex-opt1').value.trim();
+            const opt2 = document.getElementById('ex-opt2').value.trim();
+            const opt3 = document.getElementById('ex-opt3').value.trim();
+            const correct = parseInt(document.getElementById('ex-correct').value);
 
             if (!question || !opt0 || !opt1) {
                 alert('أدخل السؤال وخيارين على الأقل.');
                 return;
             }
 
-            let unit = appData.grades.find(g => g.id === gId).books.find(b => b.id === bId).units.find(u => u.id === uId);
-            let lesson = unit.lessons.find(l => l.id === lId);
+            const lessonRef = db.collection('grades').doc(gId).collection('books').doc(bId).collection('units').doc(uId).collection('lessons').doc(lId);
+            const docSnap = await lessonRef.get();
+            const currentExercises = (docSnap.exists && Array.isArray(docSnap.data().exercises)) ? docSnap.data().exercises : [];
 
-            if (!lesson.exercises) lesson.exercises = [];
-            lesson.exercises.push({
-                question: question,
+            currentExercises.push({
+                question,
                 options: [opt0, opt1, opt2, opt3].filter(o => o !== ''),
-                correct: correct
+                correct
             });
 
-            localStorage.setItem('taha_math_platform_data', JSON.stringify(appData));
+            await lessonRef.update({ exercises: currentExercises });
             closeExerciseModal();
             document.getElementById('ex-question').value = '';
             document.getElementById('ex-opt0').value = '';
             document.getElementById('ex-opt1').value = '';
             document.getElementById('ex-opt2').value = '';
             document.getElementById('ex-opt3').value = '';
-            renderAdminUnits();
-            alert('تمت إضافة التمرين بنجاح!');
+            await renderAdminUnits();
+            alert('تمت إضافة التمرين ونشره بنجاح!');
         }
 
         function previewMathContent() {
             let val = document.getElementById('new-lesson-content').value;
             let preview = document.getElementById('live-math-preview');
             preview.innerHTML = `<div dir="rtl" style="text-align: right; direction: rtl;">${val}</div>`;
-            if (window.MathJax) { MathJax.typesetPromise([preview]); }
+            if (window.MathJax && window.MathJax.typesetPromise) { MathJax.typesetPromise([preview]); }
         }
 
-        /* --- محول OMML الشامل للأقواس (d)، الأسس (sup/sSup)، الأدلة السفلية (sub)، والكسور (f) --- */
+        // محول OMML الشامل للأقواس، الأسس، الأدلة السفلية، والكسور
         function convertOmmlToLatex(ommlNode) {
             try {
                 function getAttr(el, attrName) {
@@ -666,14 +744,12 @@
             svg.setAttribute("xmlns", svgNS);
             svg.setAttribute("width", Math.max(80, eqText.length * 9));
             svg.setAttribute("height", "28");
-            
             const rect = document.createElementNS(svgNS, "rect");
             rect.setAttribute("width", "100%");
             rect.setAttribute("height", "100%");
             rect.setAttribute("fill", "#f1f5f9");
             rect.setAttribute("rx", "4");
             svg.appendChild(rect);
-
             const text = document.createElementNS(svgNS, "text");
             text.setAttribute("x", "8");
             text.setAttribute("y", "19");
@@ -682,7 +758,6 @@
             text.setAttribute("font-size", "13px");
             text.textContent = eqText;
             svg.appendChild(text);
-
             let s = new XMLSerializer();
             return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(s.serializeToString(svg))))}`;
         }
@@ -691,7 +766,6 @@
             let file = e.target.files[0];
             if (!file) return;
             let fileName = file.name.toLowerCase();
-
             if (fileName.endsWith('.docx')) {
                 await handleDocxUpload(file);
             } else if (fileName.endsWith('.pdf')) {
@@ -848,7 +922,7 @@
                 document.getElementById('new-lesson-content').value = `<div dir="rtl" style="text-align: right; direction: rtl; line-height: 1.8;">${finalHtml}</div>`;
                 document.getElementById('new-lesson-title').value = file.name.replace(/\.[^/.]+$/, "");
                 previewMathContent();
-                alert('تم استيراد ملف Word بنجاح مع دعم الأقواس والأدلة السفلية والأسس والصور!');
+                alert('تم استيراد ملف Word بنجاح!');
             } catch (err) {
                 alert('خطأ في قراءة ملف Word: ' + err.message);
             }
@@ -873,17 +947,75 @@
             }
         }
 
-        function exportJSON() {
-            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-            let dlAnchor = document.createElement('a');
+        // تصدير نسخة احتياطية كاملة من Firestore بصيغة JSON
+        async function exportJSON() {
+            const backup = { grades: [] };
+            const gradesSnap = await db.collection('grades').orderBy('order', 'asc').get();
+            for (const gDoc of gradesSnap.docs) {
+                const gradeObj = { id: gDoc.id, ...gDoc.data(), books: [] };
+                const booksSnap = await gDoc.ref.collection('books').orderBy('order', 'asc').get();
+                for (const bDoc of booksSnap.docs) {
+                    const bookObj = { id: bDoc.id, ...bDoc.data(), units: [] };
+                    const unitsSnap = await bDoc.ref.collection('units').orderBy('order', 'asc').get();
+                    for (const uDoc of unitsSnap.docs) {
+                        const unitObj = { id: uDoc.id, ...uDoc.data(), lessons: [] };
+                        const lessonsSnap = await uDoc.ref.collection('lessons').orderBy('order', 'asc').get();
+                        lessonsSnap.forEach(lDoc => {
+                            unitObj.lessons.push({ id: lDoc.id, ...lDoc.data() });
+                        });
+                        bookObj.units.push(unitObj);
+                    }
+                    gradeObj.books.push(bookObj);
+                }
+                backup.grades.push(gradeObj);
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+            const dlAnchor = document.createElement('a');
             dlAnchor.setAttribute("href", dataStr);
-            dlAnchor.setAttribute("download", "taha_math_backup.json");
+            dlAnchor.setAttribute("download", "taha_math_firestore_backup.json");
             document.body.appendChild(dlAnchor);
             dlAnchor.click();
             dlAnchor.remove();
         }
 
-        initAdmin();
+        // استيراد نسخة احتياطية JSON ورفعها إلى Firestore
+        async function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const parsed = JSON.parse(await file.text());
+                if (!parsed || !Array.isArray(parsed.grades)) {
+                    alert('ملف النسخة الاحتياطية غير صالح.');
+                    return;
+                }
+                for (const g of parsed.grades) {
+                    const gRef = db.collection('grades').doc(g.id || db.collection('grades').doc().id);
+                    await gRef.set({ name: g.name, order: g.order || Date.now() });
+                    for (const b of (g.books || [])) {
+                        const bRef = gRef.collection('books').doc(b.id || gRef.collection('books').doc().id);
+                        await bRef.set({ name: b.name, order: b.order || Date.now() });
+                        for (const u of (b.units || [])) {
+                            const uRef = bRef.collection('units').doc(u.id || bRef.collection('units').doc().id);
+                            await uRef.set({ name: u.name, order: u.order || Date.now() });
+                            for (const l of (u.lessons || [])) {
+                                const lRef = uRef.collection('lessons').doc(l.id || uRef.collection('lessons').doc().id);
+                                await lRef.set({
+                                    title: l.title,
+                                    content: l.content || '',
+                                    exercises: l.exercises || [],
+                                    order: l.order || Date.now()
+                                });
+                            }
+                        }
+                    }
+                }
+                await loadGradesDropdown();
+                alert('تم استيراد البيانات ورفعها إلى Firestore بنجاح!');
+            } catch (err) {
+                alert('حدث خطأ أثناء الاستيراد: ' + err.message);
+            }
+        }
     </script>
 </body>
 </html>
