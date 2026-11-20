@@ -25,8 +25,18 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase Compat SDKs (متوافق مع GitHub Pages دون أدوات بناء) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        body, table, td, th, div {
+            direction: rtl;
+            text-align: right;
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300" dir="rtl">
 
     <!-- Header -->
     <header class="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-50 border-b border-slate-200 dark:border-slate-700">
@@ -41,14 +51,24 @@
 
             <nav class="hidden md:flex items-center gap-6 font-medium text-sm">
                 <a href="#" onclick="showSection('home')" class="nav-link text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 transition">الرئيسية</a>
-                <a href="#" onclick="showSection('grades')" class="nav-link hover:text-indigo-600 dark:hover:text-indigo-400 transition">الصفوف الدراسية</a>
-                <a href="#" onclick="showSection('about')" class="nav-link hover:text-indigo-600 dark:hover:text-indigo-400 transition">من نحن</a>
-                <a href="#" onclick="showSection('contact')" class="nav-link hover:text-indigo-600 dark:hover:text-indigo-400 transition">اتصل بنا</a>
-                <a href="admin.html" target="_blank" class="bg-slate-100 dark:bg-slate-700 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition"><i class="fa-solid fa-gauge-high ml-1"></i> لوحة التحكم</a>
+                <a href="#" onclick="showSection('grades')" class="nav-link hover:text-indigo-600 dark:text-indigo-400 transition">الصفوف الدراسية</a>
+                <a href="#" onclick="showSection('about')" class="nav-link hover:text-indigo-600 dark:text-indigo-400 transition">من نحن</a>
+                <a href="#" onclick="showSection('contact')" class="nav-link hover:text-indigo-600 dark:text-indigo-400 transition">اتصل بنا</a>
+                <!-- زر لوحة التحكم مخفي افتراضياً ويظهر فقط للمدير المسجل -->
+                <a id="admin-dashboard-link" href="admin.html" class="hidden bg-indigo-600 text-white px-3.5 py-2 rounded-lg hover:bg-indigo-700 transition">
+                    <i class="fa-solid fa-gauge-high ml-1"></i> لوحة التحكم
+                </a>
             </nav>
 
             <div class="flex items-center gap-3">
-                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"><i id="theme-icon" class="fa-solid fa-moon"></i></button>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300" title="تبديل الوضع الليلي/النهاري">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <div id="admin-auth-status">
+                    <button onclick="openAdminLoginModal()" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg font-medium transition">
+                        <i class="fa-solid fa-lock ml-1"></i> دخول المدير
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -62,11 +82,34 @@
                 <div class="relative z-10 max-w-2xl space-y-4">
                     <span class="bg-indigo-500/40 text-indigo-100 text-xs font-semibold px-3 py-1 rounded-full">منصة تعليمية مجانية بالكامل</span>
                     <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">تعلم الرياضيات بمتعة وسهولة للصفوف السابع، الثامن، والتاسع</h2>
-                    <p class="text-indigo-100 text-base md:text-lg">شرح مبسط، تمارين تفاعلية، ودعم كامل للمعادلات الرياضية وفق المنهاج السوري.</p>
+                    <p class="text-indigo-100 text-base md:text-lg">شرح مبسط، تمارين تفاعلية، ودعم كامل للمعادلات الرياضية والهندسة وفق المنهاج السوري.</p>
                     <div class="pt-4 flex flex-wrap gap-4">
                         <button onclick="showSection('grades')" class="bg-white text-indigo-600 font-bold px-6 py-3 rounded-xl shadow-lg hover:bg-indigo-50 transition">ابدأ التعلم الآن</button>
-                        <a href="admin.html" target="_blank" class="bg-indigo-700/60 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-xl border border-indigo-400/30 transition">لوحة تحكم الأستاذ</a>
                     </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">مناهج متكاملة</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">كتب الجبر والهندسة منظمة بدقة في وحدات ودروس شاملة للصفوف 7، 8، و9.</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-square-root-variable"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">دعم الرياضيات المتقدم</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">عرض دقيق للكسور، الجذور، الأسس، الأقواس، والمعادلات باستخدام محرك MathJax.</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <h3 class="text-lg font-bold">تمارين تفاعلية فورية</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">تمارين مرتبطة بكل درس مع تصحيح فوري وتوضيح الإجابة الصحيحة.</p>
                 </div>
             </div>
         </section>
@@ -76,170 +119,346 @@
             <div id="breadcrumb" class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
                 <a href="#" onclick="showSection('grades'); loadGradesView();" class="hover:text-indigo-600">الصفوف الدراسية</a>
             </div>
-            <div id="dynamic-content-area"></div>
+            <div id="dynamic-content-area">
+                <div class="text-center py-12 text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>جاري تحميل المحتوى من قاعدة البيانات...</p></div>
+            </div>
         </section>
 
         <!-- SECTION: ABOUT -->
         <section id="section-about" class="hidden max-w-3xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
             <h2 class="text-2xl font-bold text-indigo-600">من نحن</h2>
-            <p class="text-slate-600 dark:text-slate-300 leading-relaxed">منصة الأستاذ طه للرياضيات هي مبادرة تعليمية رقمية مجانية تهدف إلى تيسير تعلم مادة الرياضيات للمرحلة المتوسطة وفق المنهاج السوري الحديث.</p>
+            <p class="text-slate-600 dark:text-slate-300 leading-relaxed">
+                منصة الأستاذ طه للرياضيات هي مبادرة تعليمية رقمية مجانية تهدف إلى تيسير تعلم مادة الرياضيات لطلاب المرحلتين المتوسطة والإعدادية وفق المنهاج السوري الحديث، مع شرح واضح، رسوم توضيحية، وتمارين تفاعلية متاحة لجميع الطلاب من أي جهاز.
+            </p>
         </section>
 
         <!-- SECTION: CONTACT -->
         <section id="section-contact" class="hidden max-w-xl mx-auto bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
             <h2 class="text-2xl font-bold text-indigo-600">اتصل بنا</h2>
             <form onsubmit="submitContact(event)" class="space-y-4">
-                <input type="text" placeholder="الاسم الكامل" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
-                <input type="text" placeholder="البريد أو الهاتف" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
-                <textarea rows="4" placeholder="الرسالة" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></textarea>
-                <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium">إرسال</button>
+                <div>
+                    <label class="block text-sm font-medium mb-1">الاسم الكامل</label>
+                    <input type="text" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">البريد الإلكتروني أو رقم الهاتف</label>
+                    <input type="text" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">الرسالة أو الاستفسار</label>
+                    <textarea rows="4" required class="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium transition">إرسال الرسالة</button>
             </form>
         </section>
 
     </main>
 
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" dir="rtl">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-5">
+            <div class="flex justify-between items-center border-b pb-3 border-slate-100 dark:border-slate-700">
+                <h3 class="text-lg font-bold text-indigo-600"><i class="fa-solid fa-shield-halved ml-1"></i> تسجيل دخول المدير</h3>
+                <button onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="loginAdmin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">البريد الإلكتروني للمدير</label>
+                    <input type="email" id="login-email" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">كلمة المرور</label>
+                    <input type="password" id="login-password" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium transition">دخول إلى لوحة التحكم</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 py-6 mt-12 text-center text-sm text-slate-500">
-        <p>جميع الحقوق محفوظة © 2026 - منصة الأستاذ طه للرياضيات</p>
+        <p class="text-center">جميع الحقوق محفوظة © 2026 - منصة الأستاذ طه للرياضيات</p>
     </footer>
 
-    <!-- App Script -->
     <script>
-        let appData = JSON.parse(localStorage.getItem('taha_math_platform_data')) || { grades: [] };
+        // =====================================================================
+        // مكان وضع Firebase Configuration (استبدل القيم ببيانات مشروعك من Firebase)
+        // =====================================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // البريد الإلكتروني المعتمد لحساب المدير فقط (طابق ما وضعته في Authentication و Firestore Rules)
+        const AUTHORIZED_ADMIN_EMAIL = "admin@taha-math.com";
+
+        let isAuthorizedAdmin = false;
+
+        // مراقبة حالة تسجيل الدخول وإظهار زر لوحة التحكم للمدير فقط
+        auth.onAuthStateChanged(user => {
+            const dashLink = document.getElementById('admin-dashboard-link');
+            const authStatus = document.getElementById('admin-auth-status');
+
+            if (user && user.email && user.email.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+                isAuthorizedAdmin = true;
+                dashLink.classList.remove('hidden');
+                authStatus.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-check-circle ml-1"></i> المدير متصل</span>
+                        <button onclick="logoutAdmin()" class="text-xs bg-rose-50 text-rose-600 px-2.5 py-1.5 rounded-lg hover:bg-rose-100 transition">خروج</button>
+                    </div>
+                `;
+            } else {
+                isAuthorizedAdmin = false;
+                dashLink.classList.add('hidden');
+                authStatus.innerHTML = `
+                    <button onclick="openAdminLoginModal()" class="text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg font-medium transition">
+                        <i class="fa-solid fa-lock ml-1"></i> دخول المدير
+                    </button>
+                `;
+            }
+        });
+
+        function openAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+        }
+        function closeAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.add('hidden');
+        }
+        async function loginAdmin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            try {
+                const cred = await auth.signInWithEmailAndPassword(email, pass);
+                if (cred.user.email.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+                    await auth.signOut();
+                    alert('هذا الحساب غير مخول بصلاحيات الإدارة.');
+                    return;
+                }
+                closeAdminLoginModal();
+                window.location.href = 'admin.html';
+            } catch (err) {
+                alert('فشل تسجيل الدخول: تأكد من البريد الإلكتروني وكلمة المرور.');
+            }
+        }
+        async function logoutAdmin() {
+            await auth.signOut();
+            alert('تم تسجيل الخروج بنجاح.');
+        }
+
+        // التنقل بين الأقسام
         function showSection(sectionId) {
             ['home', 'grades', 'about', 'contact'].forEach(s => {
                 document.getElementById(`section-${s}`).classList.add('hidden');
             });
             document.getElementById(`section-${sectionId}`).classList.remove('hidden');
-            if (sectionId === 'grades') { loadGradesView(); }
+            if (sectionId === 'grades') {
+                loadGradesView();
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function loadGradesView() {
+        // جلب الصفوف من Firestore
+        async function loadGradesView() {
+            const area = document.getElementById('dynamic-content-area');
             document.getElementById('breadcrumb').innerHTML = `<span class="text-indigo-600 font-semibold">الصفوف الدراسية</span>`;
-            let html = `<h2 class="text-2xl font-bold mb-6">اختر الصف الدراسي</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
-            appData.grades.forEach(grade => {
-                html += `
-                    <div onclick="loadBooksView('${grade.id}')" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-indigo-500 cursor-pointer transition text-center space-y-4">
-                        <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto"><i class="fa-solid fa-graduation-cap"></i></div>
-                        <h3 class="text-xl font-bold">${grade.name}</h3>
-                    </div>
-                `;
-            });
-            html += `</div>`;
-            document.getElementById('dynamic-content-area').innerHTML = html;
+            area.innerHTML = `<div class="text-center py-10 text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>جاري تحميل الصفوف...</p></div>`;
+
+            try {
+                const snap = await db.collection('grades').orderBy('order', 'asc').get();
+                if (snap.empty) {
+                    area.innerHTML = `<div class="bg-white dark:bg-slate-800 p-8 rounded-3xl text-center text-slate-500">لا توجد صفوف مضافة بعد.</div>`;
+                    return;
+                }
+
+                let html = `<h2 class="text-2xl font-bold mb-6">اختر الصف الدراسي</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
+                snap.forEach(doc => {
+                    const g = doc.data();
+                    html += `
+                        <div onclick="loadBooksView('${doc.id}', '${escapeJs(g.name)}')" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-indigo-500 cursor-pointer transition text-center space-y-4">
+                            <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl font-bold mx-auto">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-center">${g.name}</h3>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                area.innerHTML = html;
+            } catch (err) {
+                area.innerHTML = `<div class="bg-rose-50 text-rose-700 p-6 rounded-2xl">تعذر تحميل الصفوف من قاعدة البيانات.</div>`;
+            }
         }
 
-        function loadBooksView(gradeId) {
-            let grade = appData.grades.find(g => g.id === gradeId);
+        // جلب الكتب من Firestore
+        async function loadBooksView(gradeId, gradeName) {
+            const area = document.getElementById('dynamic-content-area');
             document.getElementById('breadcrumb').innerHTML = `
                 <a href="#" onclick="showSection('grades'); loadGradesView();" class="hover:text-indigo-600">الصفوف</a>
                 <i class="fa-solid fa-chevron-left text-xs"></i>
-                <span class="text-indigo-600 font-semibold">${grade.name}</span>
+                <span class="text-indigo-600 font-semibold">${gradeName}</span>
             `;
-            let html = `<h2 class="text-2xl font-bold mb-6">كتب ${grade.name}</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
-            grade.books.forEach(book => {
-                html += `
-                    <div onclick="loadUnitsView('${gradeId}', '${book.id}')" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-indigo-500 cursor-pointer transition flex items-center gap-6">
-                        <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/40 text-blue-600 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0"><i class="fa-solid fa-book"></i></div>
-                        <div><h3 class="text-xl font-bold mb-1">${book.name}</h3></div>
-                    </div>
-                `;
-            });
-            html += `</div>`;
-            document.getElementById('dynamic-content-area').innerHTML = html;
+            area.innerHTML = `<div class="text-center py-10 text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>جاري تحميل الكتب...</p></div>`;
+
+            try {
+                const snap = await db.collection('grades').doc(gradeId).collection('books').orderBy('order', 'asc').get();
+                if (snap.empty) {
+                    area.innerHTML = `<div class="bg-white dark:bg-slate-800 p-8 rounded-3xl text-center text-slate-500">لا توجد كتب مضافة في هذا الصف بعد.</div>`;
+                    return;
+                }
+
+                let html = `<h2 class="text-2xl font-bold mb-6">كتب ${gradeName}</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+                snap.forEach(doc => {
+                    const b = doc.data();
+                    html += `
+                        <div onclick="loadUnitsView('${gradeId}', '${escapeJs(gradeName)}', '${doc.id}', '${escapeJs(b.name)}')" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-indigo-500 cursor-pointer transition flex items-center gap-6">
+                            <div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/40 text-blue-600 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold mb-1">${b.name}</h3>
+                                <p class="text-sm text-slate-500">تصفح الوحدات والدروس والتمارين</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                area.innerHTML = html;
+            } catch (err) {
+                area.innerHTML = `<div class="bg-rose-50 text-rose-700 p-6 rounded-2xl">تعذر تحميل الكتب.</div>`;
+            }
         }
 
-        function loadUnitsView(gradeId, bookId) {
-            let grade = appData.grades.find(g => g.id === gradeId);
-            let book = grade.books.find(b => b.id === bookId);
+        // جلب الوحدات والدروس من Firestore
+        async function loadUnitsView(gradeId, gradeName, bookId, bookName) {
+            const area = document.getElementById('dynamic-content-area');
             document.getElementById('breadcrumb').innerHTML = `
                 <a href="#" onclick="showSection('grades'); loadGradesView();" class="hover:text-indigo-600">الصفوف</a>
                 <i class="fa-solid fa-chevron-left text-xs"></i>
-                <a href="#" onclick="loadBooksView('${gradeId}')" class="hover:text-indigo-600">${grade.name}</a>
+                <a href="#" onclick="loadBooksView('${gradeId}', '${escapeJs(gradeName)}')" class="hover:text-indigo-600">${gradeName}</a>
                 <i class="fa-solid fa-chevron-left text-xs"></i>
-                <span class="text-indigo-600 font-semibold">${book.name}</span>
+                <span class="text-indigo-600 font-semibold">${bookName}</span>
             `;
-            let html = `<h2 class="text-2xl font-bold mb-6">وحدات ${book.name}</h2><div class="space-y-4">`;
-            if (!book.units || book.units.length === 0) {
-                html += `<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl text-center text-slate-500">لا توجد وحدات مضافة بعد.</div>`;
-            } else {
-                book.units.forEach(unit => {
+            area.innerHTML = `<div class="text-center py-10 text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>جاري تحميل الوحدات والدروس...</p></div>`;
+
+            try {
+                const unitsSnap = await db.collection('grades').doc(gradeId).collection('books').doc(bookId).collection('units').orderBy('order', 'asc').get();
+                if (unitsSnap.empty) {
+                    area.innerHTML = `<div class="bg-white dark:bg-slate-800 p-8 rounded-3xl text-center text-slate-500">لا توجد وحدات مضافة بعد في هذا الكتاب.</div>`;
+                    return;
+                }
+
+                let html = `<h2 class="text-2xl font-bold mb-6">وحدات ${bookName}</h2><div class="space-y-6">`;
+
+                for (const unitDoc of unitsSnap.docs) {
+                    const unit = unitDoc.data();
+                    const lessonsSnap = await unitDoc.ref.collection('lessons').orderBy('order', 'asc').get();
+
                     html += `
                         <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-                            <h3 class="text-lg font-bold text-indigo-600">${unit.name}</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+                            <h3 class="text-lg font-bold text-indigo-600 dark:text-indigo-400">${unit.name}</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     `;
-                    if (unit.lessons && unit.lessons.length > 0) {
-                        unit.lessons.forEach(lesson => {
-                            let exBadge = (lesson.exercises && lesson.exercises.length > 0) ? `<span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full mr-2">تمارين (${lesson.exercises.length})</span>` : '';
+
+                    if (lessonsSnap.empty) {
+                        html += `<p class="text-sm text-slate-400">لا توجد دروس في هذه الوحدة بعد.</p>`;
+                    } else {
+                        lessonsSnap.forEach(lessonDoc => {
+                            const lesson = lessonDoc.data();
+                            const exCount = Array.isArray(lesson.exercises) ? lesson.exercises.length : 0;
+                            const exBadge = exCount > 0 ? `<span class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full mr-2">تمارين (${exCount})</span>` : '';
                             html += `
-                                <div onclick="openLesson('${gradeId}', '${bookId}', '${unit.id}', '${lesson.id}')" class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-indigo-50 cursor-pointer transition flex items-center justify-between">
+                                <div onclick="openLesson('${gradeId}', '${escapeJs(gradeName)}', '${bookId}', '${escapeJs(bookName)}', '${unitDoc.id}', '${lessonDoc.id}')" class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer transition flex items-center justify-between">
                                     <span class="font-medium text-sm"><i class="fa-solid fa-file-lines ml-2 text-indigo-500"></i>${lesson.title} ${exBadge}</span>
                                     <i class="fa-solid fa-arrow-left text-xs text-slate-400"></i>
                                 </div>
                             `;
                         });
-                    } else {
-                        html += `<p class="text-sm text-slate-400">لا توجد دروس في هذه الوحدة.</p>`;
                     }
                     html += `</div></div>`;
-                });
+                }
+
+                html += `</div>`;
+                area.innerHTML = html;
+            } catch (err) {
+                area.innerHTML = `<div class="bg-rose-50 text-rose-700 p-6 rounded-2xl">تعذر تحميل الوحدات والدروس.</div>`;
             }
-            html += `</div>`;
-            document.getElementById('dynamic-content-area').innerHTML = html;
         }
 
-        function openLesson(gradeId, bookId, unitId, lessonId) {
-            let grade = appData.grades.find(g => g.id === gradeId);
-            let book = grade.books.find(b => b.id === bookId);
-            let unit = book.units.find(u => u.id === unitId);
-            let lesson = unit.lessons.find(l => l.id === lessonId);
+        // فتح الدرس وعرض محتواه وتمارينه
+        async function openLesson(gradeId, gradeName, bookId, bookName, unitId, lessonId) {
+            const area = document.getElementById('dynamic-content-area');
+            area.innerHTML = `<div class="text-center py-10 text-slate-500"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>جاري تحميل الدرس...</p></div>`;
 
-            document.getElementById('breadcrumb').innerHTML = `
-                <a href="#" onclick="showSection('grades'); loadGradesView();" class="hover:text-indigo-600">الصفوف</a>
-                <i class="fa-solid fa-chevron-left text-xs"></i>
-                <a href="#" onclick="loadUnitsView('${gradeId}', '${bookId}')" class="hover:text-indigo-600">${book.name}</a>
-                <i class="fa-solid fa-chevron-left text-xs"></i>
-                <span class="text-indigo-600 font-semibold">${lesson.title}</span>
-            `;
+            try {
+                const lessonDoc = await db.collection('grades').doc(gradeId)
+                    .collection('books').doc(bookId)
+                    .collection('units').doc(unitId)
+                    .collection('lessons').doc(lessonId).get();
 
-            let html = `
-                <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
-                    <h2 class="text-2xl font-bold text-indigo-600">${lesson.title}</h2>
-                    <div class="prose dark:prose-invert max-w-none space-y-4 leading-relaxed">
-                        ${lesson.content}
-                    </div>
-            `;
+                if (!lessonDoc.exists) {
+                    area.innerHTML = `<div class="bg-rose-50 text-rose-700 p-6 rounded-2xl">الدرس غير موجود.</div>`;
+                    return;
+                }
 
-            // Render Exercises if available
-            if (lesson.exercises && lesson.exercises.length > 0) {
-                html += `<div class="pt-6 border-t border-slate-200 dark:border-slate-700 space-y-6">
-                    <h3 class="text-xl font-bold text-emerald-600"><i class="fa-solid fa-pen-to-square ml-2"></i> تمارين تفاعلية للدرس</h3>`;
-                
-                lesson.exercises.forEach((ex, eIdx) => {
-                    html += `
-                        <div class="p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-3">
-                            <p class="font-bold text-base">${eIdx + 1}. ${ex.question}</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    `;
-                    ex.options.forEach((opt, oIdx) => {
-                        html += `<button onclick="checkAnswer(this, ${oIdx}, ${ex.correct})" class="p-3 text-right bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 text-sm hover:border-indigo-500 transition">${opt}</button>`;
+                const lesson = lessonDoc.data();
+                document.getElementById('breadcrumb').innerHTML = `
+                    <a href="#" onclick="showSection('grades'); loadGradesView();" class="hover:text-indigo-600">الصفوف</a>
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <a href="#" onclick="loadUnitsView('${gradeId}', '${escapeJs(gradeName)}', '${bookId}', '${escapeJs(bookName)}')" class="hover:text-indigo-600">${bookName}</a>
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <span class="text-indigo-600 font-semibold">${lesson.title}</span>
+                `;
+
+                let html = `
+                    <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 space-y-6">
+                        <h2 class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">${lesson.title}</h2>
+                        <div class="prose dark:prose-invert max-w-none space-y-4 leading-relaxed" dir="rtl" style="text-align: right; direction: rtl;">
+                            ${lesson.content || ''}
+                        </div>
+                `;
+
+                if (Array.isArray(lesson.exercises) && lesson.exercises.length > 0) {
+                    html += `<div class="pt-6 border-t border-slate-200 dark:border-slate-700 space-y-6">
+                        <h3 class="text-xl font-bold text-emerald-600"><i class="fa-solid fa-pen-to-square ml-2"></i> تمارين تفاعلية للدرس</h3>`;
+
+                    lesson.exercises.forEach((ex, eIdx) => {
+                        html += `
+                            <div class="p-6 bg-slate-50 dark:bg-slate-700/40 rounded-2xl space-y-3" dir="rtl">
+                                <div class="font-bold text-base">${eIdx + 1}. ${ex.question}</div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        `;
+                        (ex.options || []).forEach((opt, oIdx) => {
+                            html += `<button onclick="checkAnswer(this, ${oIdx}, ${ex.correct})" class="p-3 text-right bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 text-sm hover:border-indigo-500 transition">${opt}</button>`;
+                        });
+                        html += `</div><div class="ex-feedback text-sm font-semibold mt-2"></div></div>`;
                     });
-                    html += `</div><div class="ex-feedback text-sm font-semibold mt-2"></div></div>`;
-                });
-                html += `</div>`;
-            }
+                    html += `</div>`;
+                }
 
-            html += `
-                    <div class="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-between">
-                        <button onclick="loadUnitsView('${gradeId}', '${bookId}')" class="bg-slate-100 dark:bg-slate-700 px-5 py-2.5 rounded-xl text-sm font-medium">العودة للوحدة</button>
+                html += `
+                        <div class="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-between">
+                            <button onclick="loadUnitsView('${gradeId}', '${escapeJs(gradeName)}', '${bookId}', '${escapeJs(bookName)}')" class="bg-slate-100 dark:bg-slate-700 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-200 transition">العودة للوحدة</button>
+                        </div>
                     </div>
-                </div>
-            `;
-            document.getElementById('dynamic-content-area').innerHTML = html;
-            if (window.MathJax) { MathJax.typeset(); }
+                `;
+
+                area.innerHTML = html;
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    await MathJax.typesetPromise([area]);
+                }
+            } catch (err) {
+                area.innerHTML = `<div class="bg-rose-50 text-rose-700 p-6 rounded-2xl">حدث خطأ أثناء فتح الدرس.</div>`;
+            }
         }
 
         function checkAnswer(btn, selected, correct) {
@@ -258,6 +477,16 @@
             } else {
                 msg.innerHTML = `<span class="text-rose-600"><i class="fa-solid fa-circle-xmark ml-1"></i> إجابة غير صحيحة. الإجابة الصحيحة ملونة بالأخضر.</span>`;
             }
+        }
+
+        function escapeJs(str) {
+            return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        function submitContact(e) {
+            e.preventDefault();
+            alert('تم إرسال رسالتك بنجاح! سيقوم الأستاذ طه بالرد عليك قريباً.');
+            e.target.reset();
         }
 
         function toggleDarkMode() {
